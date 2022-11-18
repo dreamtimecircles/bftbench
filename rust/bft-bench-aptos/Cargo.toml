@@ -1,0 +1,35 @@
+[package]
+name = "bft-bench-aptos"
+version = "0.0.1"
+edition = "2021"
+authors = ["Fabio Tudone <fabtud@gmail.com>"]
+
+[dependencies.bft-bench-core]
+path = "../bft-bench-core"
+
+[dependencies.async-trait]
+version = "0.1.58"
+
+[dependencies.tokio]
+version = "1.21.2"
+features = ["full"]
+
+[dependencies.uuid]
+version = "1.2.0"
+features = ["v4"]
+
+[dependencies.rand]
+version = "0.7.3"
+
+[dependencies.anyhow]
+version = "1.0.66"
+
+[dependencies.once_cell]
+version = "1.16.0"
+
+[dependencies.url]
+version = "2.3.1"
+
+[dependencies.aptos-sdk]
+git = "https://github.com/aptos-labs/aptos-core"
+branch = "devnet"
