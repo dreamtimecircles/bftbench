@@ -1,0 +1,15 @@
+[package]
+name = "bft-bench-core"
+version = "0.0.1"
+edition = "2021"
+authors = ["Fabio Tudone <fabtud@gmail.com>"]
+
+[dependencies.async-trait]
+version = "0.1.58"
+
+[dependencies.tokio]
+version = "1.21.2"
+
+[dependencies.uuid]
+version = "1.2.0"
+features = ["v4"]
