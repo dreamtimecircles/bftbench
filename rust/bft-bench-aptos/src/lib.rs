@@ -1,17 +1,17 @@
-use async_trait::async_trait;
-use uuid::Uuid;
+use std::sync::Arc;
 
-use bft_bench_core::{BftBinding, Result, BftError};
+use async_trait::async_trait;
+
+use bft_bench_core::{BftBinding, NodeEndpoint, Result};
 
 struct AptosBftBinding {}
 
 #[async_trait]
 impl BftBinding for AptosBftBinding {
-    async fn write(_key: &Uuid, _value: &str) {
-
+    async fn write(write_endpoint: Arc<NodeEndpoint>, key: [u8; 16], value: Arc<Vec<u8>>) -> Result<()> {
+        todo!()
     }
-
-    async fn read() -> Result<Uuid> {
-        Err(BftError { message: "todo".to_string() })
+    async fn read(read_endpoint: &NodeEndpoint) -> Result<[u8; 16]> {
+        todo!()
     }
 }
