@@ -30,6 +30,7 @@ pub type Result<T> = core::result::Result<T, BftError>;
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
+    run_duration: Duration,
     write_interval: Duration,
     transaction_size: usize,
     nodes: Vec<Node>,
@@ -72,7 +73,7 @@ pub async fn run<B: BftBinding>(config: Config) -> Result<()> {
     ));
     let in_progress_reads = Mutex::new(Vec::<JoinHandle<Result<()>>>::new());
 
-    let mut running = true;
+    let running = Arc::new(Mutex::new(true));
 
     // Setup read threads
     let nodes_arcs: Vec<_> = config.nodes.into_iter().map(|n| Arc::new(n)).collect();
@@ -86,8 +87,9 @@ pub async fn run<B: BftBinding>(config: Config) -> Result<()> {
         if n.kind == NodeKind::ReadWrite {
             let mut reads = in_progress_reads.lock().unwrap();
             let in_progress_writes = in_progress_writes_arc.clone();
+            let running = running.clone();
             (*reads).push(spawn(async move {
-                while running {
+                while *running.lock().unwrap() {
                     let uuid = B::read(&n.endpoint).await?;
                     let mut writes = in_progress_writes.lock().unwrap();
                     match (*writes).remove(&uuid) {
@@ -115,8 +117,9 @@ pub async fn run<B: BftBinding>(config: Config) -> Result<()> {
     for n in nodes_write_endpoint_arcs {
         let in_progress_writes = in_progress_writes_arc.clone();
         let value_arc = value_arc.clone();
+        let running = running.clone();
         spawn(async move {
-            while running {
+            while *running.lock().unwrap() {
                 let uuid = Uuid::new_v4().into_bytes();
                 let write_join_handle = spawn(B::write(n.clone(), uuid, value_arc.clone()));
                 {
@@ -127,6 +130,13 @@ pub async fn run<B: BftBinding>(config: Config) -> Result<()> {
             }
         });
     }
+
+    time::interval(config.run_duration).tick().await;
+
+    // Stop reading and writing
+    *running.lock().unwrap() = false;
+    in_progress_writes_arc.lock().unwrap().iter().for_each(|x| x.1.abort());
+    in_progress_reads.lock().unwrap().iter().for_each(|x| x.abort());
 
     Ok(())
 }
