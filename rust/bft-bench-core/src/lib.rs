@@ -28,11 +28,17 @@ impl Error for BftError {}
 
 pub type Result<T> = core::result::Result<T, BftError>;
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     write_interval: Duration,
     transaction_size: usize,
     nodes: Vec<Node>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Node {
+    pub endpoint: NodeEndpoint,
+    pub kind: NodeKind,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
@@ -41,16 +47,10 @@ pub struct NodeEndpoint {
     pub port: u16,
 }
 
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub enum NodeKind {
     Write,
     ReadWrite,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Node {
-    pub endpoint: NodeEndpoint,
-    pub kind: NodeKind,
 }
 
 #[async_trait]
