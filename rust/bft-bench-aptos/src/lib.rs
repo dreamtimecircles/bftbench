@@ -8,10 +8,10 @@ struct AptosBftBinding {}
 
 #[async_trait]
 impl BftBinding for AptosBftBinding {
-    async fn write(write_endpoint: Arc<NodeEndpoint>, key: [u8; 16], value: Arc<Vec<u8>>) -> Result<()> {
+    async fn write(_write_endpoint: Arc<NodeEndpoint>, _key: [u8; 16], _value: Arc<Vec<u8>>) -> Result<()> {
         todo!()
     }
-    async fn read(read_endpoint: &NodeEndpoint) -> Result<[u8; 16]> {
+    async fn read(_read_endpoint: &NodeEndpoint) -> Result<[u8; 16]> {
         todo!()
     }
 }

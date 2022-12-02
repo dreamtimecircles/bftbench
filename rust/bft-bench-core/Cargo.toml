@@ -18,6 +18,9 @@ features = ["v4"]
 [dependencies.rand]
 version = "0.7.3"
 
+[dependencies.metrics]
+version = "0.20.1"
+
 [dependencies.serde]
 version = "1.0.147"
 
