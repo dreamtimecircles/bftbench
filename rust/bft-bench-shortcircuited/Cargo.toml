@@ -1,0 +1,15 @@
+[package]
+name = "bft-bench-shortcircuited"
+version = "0.0.1"
+edition = "2021"
+authors = ["Fabio Tudone <fabtud@gmail.com>"]
+
+[dependencies.bft-bench-core]
+path = "../bft-bench-core"
+
+[dependencies.async-trait]
+version = "0.1.58"
+
+[dependencies.tokio]
+version = "1.21.2"
+features = ["full"]

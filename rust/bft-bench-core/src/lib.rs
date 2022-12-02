@@ -72,16 +72,25 @@ pub enum NodeKind {
 }
 
 #[async_trait]
-pub trait BftBinding {
+pub trait BftWriter: Send + Sync {
     async fn write(
+        &mut self,
         write_endpoint: Arc<NodeEndpoint>,
         key: [u8; 16],
         value: Arc<Vec<u8>>,
     ) -> Result<()>;
-    async fn read(read_endpoint: &NodeEndpoint) -> Result<[u8; 16]>;
 }
 
-pub async fn run<B: BftBinding + 'static>(config: Config) -> Result<()> {
+#[async_trait]
+pub trait BftReader: Send + Sync {
+    async fn read(&mut self, read_endpoint: &NodeEndpoint) -> Result<[u8; 16]>;
+}
+
+pub async fn run<W: BftWriter + 'static, R: BftReader + 'static>(
+    config: Config,
+    bft_writer: W,
+    bft_reader: R,
+) -> Result<()> {
     let value = create_value(&config);
 
     let in_progress_writes_mutex_arc = Arc::new(Mutex::new(HashMap::<
@@ -98,15 +107,21 @@ pub async fn run<B: BftBinding + 'static>(config: Config) -> Result<()> {
         .map(|n| Arc::new(n))
         .collect::<Vec<_>>();
 
-    let read_indices = start_reads::<B>(
+    let bft_reader_mutex_arc = Arc::new(tokio::sync::Mutex::new(bft_reader));
+
+    let read_indices = start_reads::<R>(
+        &bft_reader_mutex_arc,
         &nodes_arcs,
         &in_progress_reads_mutex,
         &in_progress_writes_mutex_arc,
         &running_mutex_arc,
     );
 
-    start_writes::<B>(
-        value,
+    let bft_writer_mutex_arc = Arc::new(tokio::sync::Mutex::new(bft_writer));
+
+    start_writes::<W>(
+        bft_writer_mutex_arc,
+        Arc::new(value),
         config.write_interval,
         &in_progress_writes_mutex_arc,
         nodes_arcs,
@@ -139,8 +154,9 @@ fn create_value(config: &Config) -> Vec<u8> {
     value
 }
 
-fn start_writes<B: BftBinding + 'static>(
-    value: Vec<u8>,
+fn start_writes<W: BftWriter + 'static>(
+    bft_writer_mutex_arc: Arc<tokio::sync::Mutex<W>>,
+    value_arc: Arc<Vec<u8>>,
     write_interval: Duration,
     in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
     nodes_arcs: Vec<Arc<Node>>,
@@ -151,11 +167,13 @@ fn start_writes<B: BftBinding + 'static>(
         .iter()
         .map(|arc| Arc::new(arc.endpoint.clone()))
         .collect();
-    let value_arc = Arc::new(value);
     let read_indices_arc = Arc::new(read_indices);
     for (node_idx, node_endpoint_arc) in nodes_write_endpoint_arcs.into_iter().enumerate() {
-        spawn(write::<B>(
-            value_arc.clone(),
+        let value_arc = value_arc.clone();
+        let bft_writer_mutex_arc = bft_writer_mutex_arc.clone();
+        spawn(write::<W>(
+            bft_writer_mutex_arc,
+            value_arc,
             node_idx,
             node_endpoint_arc,
             write_interval,
@@ -166,7 +184,8 @@ fn start_writes<B: BftBinding + 'static>(
     }
 }
 
-async fn write<B: BftBinding>(
+async fn write<W: BftWriter + 'static>(
+    bft_writer_mutex_arc: Arc<tokio::sync::Mutex<W>>,
     value_arc: Arc<Vec<u8>>,
     node_idx: usize,
     node_endpoint_arc: Arc<NodeEndpoint>,
@@ -187,17 +206,25 @@ async fn write<B: BftBinding>(
             let uuid = Uuid::new_v4().into_bytes();
             let node_endpoint_arc = node_endpoint_arc.clone();
             let value_arc = value_arc.clone();
+            let bft_writer_mutex_arc = bft_writer_mutex_arc.clone();
             (*writes_locked).insert(
                 uuid,
                 Some(InProgressWrite {
                     start: Instant::now(),
                     join_handle: spawn(async move {
                         let write_start = Instant::now();
-                        let result = B::write(node_endpoint_arc, uuid, value_arc).await;
+                        let result = bft_writer_mutex_arc
+                            .lock()
+                            .await
+                            .write(node_endpoint_arc, uuid, value_arc)
+                            .await;
                         let write_elapsed = write_start.elapsed();
                         let outcome = match result {
                             Ok(()) => "successful",
-                            Err(_) => "failed", // TODO also log
+                            Err(ref bft_error) => {
+                                log::error!("Write failed: {}", bft_error);
+                                "failed"
+                            }
                         };
                         histogram!(format!("global.write.{}", outcome), write_elapsed);
                         histogram!(format!("node{}.write.{}", node_idx, outcome), write_elapsed);
@@ -211,7 +238,8 @@ async fn write<B: BftBinding>(
     }
 }
 
-fn start_reads<B: BftBinding + 'static>(
+fn start_reads<R: BftReader + 'static>(
+    bft_reader_mutex_arc: &Arc<tokio::sync::Mutex<R>>,
     nodes_arcs: &Vec<Arc<Node>>,
     in_progress_reads_mutex: &Mutex<Vec<Option<JoinHandle<()>>>>,
     in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
@@ -226,7 +254,8 @@ fn start_reads<B: BftBinding + 'static>(
     {
         read_indices.insert(node_idx);
         let mut reads = in_progress_reads_mutex.lock().unwrap();
-        (*reads).push(Some(spawn(read::<B>(
+        (*reads).push(Some(spawn(read::<R>(
+            bft_reader_mutex_arc.clone(),
             node,
             node_idx,
             in_progress_writes_mutex_arc.clone(),
@@ -236,7 +265,8 @@ fn start_reads<B: BftBinding + 'static>(
     read_indices
 }
 
-async fn read<B: BftBinding + 'static>(
+async fn read<R: BftReader>(
+    bft_reader_mutex_arc: Arc<tokio::sync::Mutex<R>>,
     node: Arc<Node>,
     node_idx: usize,
     in_progress_writes_mutex_arc: Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
@@ -251,7 +281,8 @@ async fn read<B: BftBinding + 'static>(
         }
 
         let read_start = Instant::now();
-        let read_result = B::read(&node.endpoint).await;
+
+        let read_result = bft_reader_mutex_arc.lock().await.read(&node.endpoint).await;
         let read_elapsed = read_start.elapsed();
         let &mut outcome;
 
@@ -266,7 +297,10 @@ async fn read<B: BftBinding + 'static>(
                         mut nodes_awaiting_read,
                     })) => {
                         if !join_handle.is_finished() {
-                            panic!("Read transaction while its write is still pending");
+                            panic!(
+                                "Read transaction {:?} while its write is still pending",
+                                uuid
+                            );
                         }
 
                         let node_round_trip = start.elapsed();
@@ -286,14 +320,14 @@ async fn read<B: BftBinding + 'static>(
                                 }),
                             );
                         } else {
-                            panic!("Duplicate read");
+                            panic!("Duplicate read {:?}", uuid);
                         }
                     }
-                    _ => panic!("Duplicate read"),
+                    _ => panic!("Duplicate read {:?}", uuid),
                 }
             }
-            Err(_) => {
-                // TODO also log
+            Err(bft_error) => {
+                log::error!("Read failed: {}", bft_error);
                 outcome = "failed";
             }
         }
