@@ -97,7 +97,10 @@ impl BftReader for Reader {
     async fn read(&mut self) -> Result<[u8; 16]> {
         match self.receiver.recv().await {
             Ok(uuid) => Ok(uuid),
-            _ => Err(BftError::fixed("No senders alive")),
+            Err(error) => Err(BftError::dynamic(format!(
+                "Error receiving from the channel: {}",
+                error
+            ))),
         }
     }
 }
