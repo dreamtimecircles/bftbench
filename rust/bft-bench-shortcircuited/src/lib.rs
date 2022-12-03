@@ -8,6 +8,8 @@ use bft_bench_core::{
 };
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 
+const CHANNEL_BUFFER_SIZE: usize = 1024;
+
 struct ShortCircuitedBftBinding {
     writer: Writer,
     first_reader: Option<Reader>,
@@ -40,7 +42,7 @@ impl BftBinding for ShortCircuitedBftBinding {
     type Reader = Reader;
 
     fn new() -> Self {
-        let (sender, receiver) = channel::<[u8; 16]>(1024);
+        let (sender, receiver) = channel::<[u8; 16]>(CHANNEL_BUFFER_SIZE);
         let sender_for_reader = sender.clone();
         ShortCircuitedBftBinding {
             writer: Writer { sender },
