@@ -8,32 +8,29 @@ use bft_bench_core::{
 };
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 
-pub struct ShortCircuitedBftBinding {
+struct ShortCircuitedBftBinding {
     writer: Writer,
     first_reader: Option<Reader>,
     readers: HashMap<NodeEndpoint, Reader>,
 }
 
-// Note that we wrap both `Sender` and `Receiver` in an `Arc` so that we can `clone` it, getting a new
-// reference-counted owning pointer that can be moved to a free-running async; since free-running asyncs
-// have `'static` lifetime (i.e., not known at compile time), `Arc`s moved to them live as long
-// as they live, thus a channel end will live as long as the longest-living free-running async
-// holding an `Arc` to it.
-
 #[derive(Clone)]
-pub struct Writer {
-    sender: Arc<Sender<[u8; 16]>>,
+struct Writer {
+    sender: Sender<[u8; 16]>,
 }
 
-#[derive(Clone)]
-pub struct Reader {
-    // Since `recv` is `&mut self`, we must use a mutex to share it via `Arc`s; furthermore,
-    // `recv` is also `async`, so we can't use a regular mutex but we need a tokio one,
-    // so that it is `Send` and can thus be moved between threads and thus work across
-    // `await`s.
-    // That's OK though, as it's used for a single node and we'll be anyway reading from each
-    // node in a loop, not concurrently.
-    receiver: Arc<tokio::sync::Mutex<Receiver<[u8; 16]>>>,
+struct Reader {
+    receiver_factory: Sender<[u8; 16]>,
+    receiver: Receiver<[u8; 16]>,
+}
+
+impl Clone for Reader {
+    fn clone(&self) -> Self {
+        Self {
+            receiver_factory: self.receiver_factory.clone(),
+            receiver: self.receiver_factory.subscribe(),
+        }
+    }
 }
 
 #[async_trait]
@@ -43,13 +40,15 @@ impl BftBinding for ShortCircuitedBftBinding {
     type Reader = Reader;
 
     fn new() -> Self {
-        let (send, recv) = channel::<[u8; 16]>(1024);
+        let (sender, receiver) = channel::<[u8; 16]>(1024);
+        let sender_for_reader = sender.clone();
         ShortCircuitedBftBinding {
-            writer: Writer {
-                sender: Arc::new(send),
-            },
+            writer: Writer { sender },
+            // We store and reuse the first reader for the first node (see `access` below) so that there's no
+            // chance of receiving errors when sending/receiving due to all opposite handles being closed.
             first_reader: Some(Reader {
-                receiver: Arc::new(tokio::sync::Mutex::new(recv)),
+                receiver_factory: sender_for_reader,
+                receiver,
             }),
             readers: HashMap::new(),
         }
@@ -63,19 +62,15 @@ impl BftBinding for ShortCircuitedBftBinding {
             Node::ReadWrite(ReadWriteNode {
                 node: WriteNode { endpoint },
             }) => NodeAccess::ReadWriteAccess {
-                // Clone the `Arc` and move it to the client of the BFT binding for it to use clone as necessary.
                 writer: self.writer.clone(),
-                // Insert a new `Arc`, so that the read end lives at least as long as the map, and thus the BFT binding, does,
-                // then clone the `Arc` and move it to the client of the BFT binding for it to use and clone as necessary.
                 reader: self
                     .readers
                     .entry(endpoint)
                     .or_insert(match self.first_reader.take() {
                         Some(reader) => reader,
                         None => Reader {
-                            receiver: Arc::new(tokio::sync::Mutex::new(
-                                self.writer.sender.subscribe(),
-                            )),
+                            receiver_factory: self.writer.sender.clone(),
+                            receiver: self.writer.sender.subscribe(),
                         },
                     })
                     .clone(),
@@ -100,7 +95,7 @@ impl BftWriter for Writer {
 #[async_trait]
 impl BftReader for Reader {
     async fn read(&mut self) -> Result<[u8; 16]> {
-        match self.receiver.lock().await.recv().await {
+        match self.receiver.recv().await {
             Ok(uuid) => Ok(uuid),
             _ => Err(BftError::fixed("No senders alive")),
         }
