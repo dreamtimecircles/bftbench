@@ -10,6 +10,7 @@ use tokio::sync::broadcast::{channel, Receiver, Sender};
 
 pub struct ShortCircuitedBftBinding {
     writer: Writer,
+    first_reader: Option<Reader>,
     readers: HashMap<NodeEndpoint, Reader>,
 }
 
@@ -42,12 +43,14 @@ impl BftBinding for ShortCircuitedBftBinding {
     type Reader = Reader;
 
     fn new() -> Self {
-        // Throwing away the first read end because we don't know who the readers are, yet.
-        let (send, _) = channel::<[u8; 16]>(1024);
+        let (send, recv) = channel::<[u8; 16]>(1024);
         ShortCircuitedBftBinding {
             writer: Writer {
                 sender: Arc::new(send),
             },
+            first_reader: Some(Reader {
+                receiver: Arc::new(tokio::sync::Mutex::new(recv)),
+            }),
             readers: HashMap::new(),
         }
     }
@@ -67,8 +70,13 @@ impl BftBinding for ShortCircuitedBftBinding {
                 reader: self
                     .readers
                     .entry(endpoint)
-                    .or_insert(Reader {
-                        receiver: Arc::new(tokio::sync::Mutex::new(self.writer.sender.subscribe())),
+                    .or_insert(match self.first_reader.take() {
+                        Some(reader) => reader,
+                        None => Reader {
+                            receiver: Arc::new(tokio::sync::Mutex::new(
+                                self.writer.sender.subscribe(),
+                            )),
+                        },
                     })
                     .clone(),
             },
