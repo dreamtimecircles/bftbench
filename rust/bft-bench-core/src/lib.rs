@@ -45,7 +45,7 @@ impl Display for BftError {
 
 pub type Result<T> = core::result::Result<T, BftError>;
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Config {
     pub run_duration: Duration,
     pub write_interval: Duration,
@@ -53,45 +53,56 @@ pub struct Config {
     pub nodes: Vec<Node>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Node {
-    pub endpoint: NodeEndpoint,
-    pub kind: NodeKind,
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Node {
+    Write(WriteNode),
+    ReadWrite(ReadWriteNode),
 }
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReadWriteNode {
+    pub node: WriteNode,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WriteNode {
+    pub endpoint: NodeEndpoint,
+}
+
+#[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct NodeEndpoint {
     pub host: String,
     pub port: u16,
 }
 
-#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
-pub enum NodeKind {
-    Write,
-    ReadWrite,
+#[async_trait]
+pub trait BftBinding {
+    type Writer: BftWriter;
+    type Reader: BftReader;
+
+    fn new() -> Self;
+    async fn access(&mut self, node: Node) -> NodeAccess<Self::Writer, Self::Reader>;
+}
+
+pub enum NodeAccess<Writer: BftWriter, Reader: BftReader> {
+    ReadWriteAccess { writer: Writer, reader: Reader },
+    WriteOnlyAccess { writer: Writer },
 }
 
 #[async_trait]
-pub trait BftWriter: Send + Sync {
-    async fn write(
-        &mut self,
-        write_endpoint: Arc<NodeEndpoint>,
-        key: [u8; 16],
-        value: Arc<Vec<u8>>,
-    ) -> Result<()>;
+pub trait BftWriter: Send + Clone {
+    async fn write(&mut self, key: [u8; 16], value: Arc<Vec<u8>>) -> Result<()>;
 }
 
 #[async_trait]
-pub trait BftReader: Send + Sync {
-    async fn read(&mut self, read_endpoint: &NodeEndpoint) -> Result<[u8; 16]>;
+pub trait BftReader: Send + Clone {
+    async fn read(&mut self) -> Result<[u8; 16]>;
 }
 
-pub async fn run<W: BftWriter + 'static, R: BftReader + 'static>(
-    config: Config,
-    bft_writer: W,
-    bft_reader: R,
-) -> Result<()> {
+pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) -> Result<()> {
     let value = create_value(&config);
+
+    let running_mutex_arc = Arc::new(Mutex::new(true));
 
     let in_progress_writes_mutex_arc = Arc::new(Mutex::new(HashMap::<
         [u8; 16],
@@ -99,32 +110,23 @@ pub async fn run<W: BftWriter + 'static, R: BftReader + 'static>(
     >::new()));
     let in_progress_reads_mutex = Mutex::new(Vec::<Option<JoinHandle<()>>>::new());
 
-    let running_mutex_arc = Arc::new(Mutex::new(true));
+    let mut accesses = HashMap::<usize, NodeAccess<B::Writer, B::Reader>>::new();
+    for (node_idx, node) in config.nodes.into_iter().enumerate() {
+        accesses.insert(node_idx, bft_binding.access(node).await);
+    }
 
-    let nodes_arcs = config
-        .nodes
-        .into_iter()
-        .map(|n| Arc::new(n))
-        .collect::<Vec<_>>();
-
-    let bft_reader_mutex_arc = Arc::new(tokio::sync::Mutex::new(bft_reader));
-
-    let read_indices = start_reads::<R>(
-        &bft_reader_mutex_arc,
-        &nodes_arcs,
+    let read_indices = start_reads::<B>(
+        &accesses,
         &in_progress_reads_mutex,
         &in_progress_writes_mutex_arc,
         &running_mutex_arc,
     );
 
-    let bft_writer_mutex_arc = Arc::new(tokio::sync::Mutex::new(bft_writer));
-
-    start_writes::<W>(
-        bft_writer_mutex_arc,
+    start_writes::<B>(
         Arc::new(value),
+        &accesses,
         config.write_interval,
         &in_progress_writes_mutex_arc,
-        nodes_arcs,
         read_indices,
         &running_mutex_arc,
     );
@@ -154,28 +156,30 @@ fn create_value(config: &Config) -> Vec<u8> {
     value
 }
 
-fn start_writes<W: BftWriter + 'static>(
-    bft_writer_mutex_arc: Arc<tokio::sync::Mutex<W>>,
+fn start_writes<B: BftBinding + 'static>(
     value_arc: Arc<Vec<u8>>,
+    accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
     write_interval: Duration,
     in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
-    nodes_arcs: Vec<Arc<Node>>,
     read_indices: HashSet<usize>,
     running_mutex_arc: &Arc<Mutex<bool>>,
 ) {
-    let nodes_write_endpoint_arcs: Vec<_> = nodes_arcs
-        .iter()
-        .map(|arc| Arc::new(arc.endpoint.clone()))
-        .collect();
     let read_indices_arc = Arc::new(read_indices);
-    for (node_idx, node_endpoint_arc) in nodes_write_endpoint_arcs.into_iter().enumerate() {
-        let value_arc = value_arc.clone();
-        let bft_writer_mutex_arc = bft_writer_mutex_arc.clone();
-        spawn(write::<W>(
-            bft_writer_mutex_arc,
-            value_arc,
+    for (node_idx, writer) in accesses.iter().map(|(node_idx, access)| {
+        (
             node_idx,
-            node_endpoint_arc,
+            match access {
+                NodeAccess::ReadWriteAccess { writer, reader: _ } => writer,
+                NodeAccess::WriteOnlyAccess { writer } => writer,
+            },
+        )
+    }) {
+        let value_arc = value_arc.clone();
+        let writer = writer.clone();
+        spawn(write::<B::Writer>(
+            value_arc,
+            writer,
+            *node_idx,
             write_interval,
             in_progress_writes_mutex_arc.clone(),
             read_indices_arc.clone(),
@@ -185,10 +189,9 @@ fn start_writes<W: BftWriter + 'static>(
 }
 
 async fn write<W: BftWriter + 'static>(
-    bft_writer_mutex_arc: Arc<tokio::sync::Mutex<W>>,
     value_arc: Arc<Vec<u8>>,
+    writer: W,
     node_idx: usize,
-    node_endpoint_arc: Arc<NodeEndpoint>,
     write_interval: Duration,
     in_progress_writes_mutex_arc: Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
     read_indices_arc: Arc<HashSet<usize>>,
@@ -204,20 +207,15 @@ async fn write<W: BftWriter + 'static>(
         {
             let mut writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
             let uuid = Uuid::new_v4().into_bytes();
-            let node_endpoint_arc = node_endpoint_arc.clone();
             let value_arc = value_arc.clone();
-            let bft_writer_mutex_arc = bft_writer_mutex_arc.clone();
+            let mut writer = writer.clone();
             (*writes_locked).insert(
                 uuid,
                 Some(InProgressWrite {
                     start: Instant::now(),
                     join_handle: spawn(async move {
                         let write_start = Instant::now();
-                        let result = bft_writer_mutex_arc
-                            .lock()
-                            .await
-                            .write(node_endpoint_arc, uuid, value_arc)
-                            .await;
+                        let result = writer.write(uuid, value_arc).await;
                         let write_elapsed = write_start.elapsed();
                         let outcome = match result {
                             Ok(()) => "successful",
@@ -238,37 +236,35 @@ async fn write<W: BftWriter + 'static>(
     }
 }
 
-fn start_reads<R: BftReader + 'static>(
-    bft_reader_mutex_arc: &Arc<tokio::sync::Mutex<R>>,
-    nodes_arcs: &Vec<Arc<Node>>,
+fn start_reads<B: BftBinding + 'static>(
+    accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
     in_progress_reads_mutex: &Mutex<Vec<Option<JoinHandle<()>>>>,
     in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
     running_mutex_arc: &Arc<Mutex<bool>>,
 ) -> HashSet<usize> {
     let mut read_indices = HashSet::<usize>::new();
-    for (node_idx, node) in nodes_arcs
-        .iter()
-        .map(|arc| arc.clone())
-        .filter(|node| node.kind == NodeKind::ReadWrite)
-        .enumerate()
-    {
-        read_indices.insert(node_idx);
+    for (node_idx, access) in accesses.iter() {
+        read_indices.insert(*node_idx);
         let mut reads = in_progress_reads_mutex.lock().unwrap();
-        (*reads).push(Some(spawn(read::<R>(
-            bft_reader_mutex_arc.clone(),
-            node,
-            node_idx,
-            in_progress_writes_mutex_arc.clone(),
-            running_mutex_arc.clone(),
-        ))));
+        match access {
+            NodeAccess::ReadWriteAccess { writer: _, reader } => {
+                let reader = reader.clone();
+                (*reads).push(Some(spawn(read::<B::Reader>(
+                    *node_idx,
+                    reader,
+                    in_progress_writes_mutex_arc.clone(),
+                    running_mutex_arc.clone(),
+                ))));
+            }
+            _ => (),
+        }
     }
     read_indices
 }
 
-async fn read<R: BftReader>(
-    bft_reader_mutex_arc: Arc<tokio::sync::Mutex<R>>,
-    node: Arc<Node>,
+async fn read<R: BftReader + 'static>(
     node_idx: usize,
+    mut reader: R,
     in_progress_writes_mutex_arc: Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
     running_mutex_arc: Arc<Mutex<bool>>,
 ) {
@@ -282,7 +278,7 @@ async fn read<R: BftReader>(
 
         let read_start = Instant::now();
 
-        let read_result = bft_reader_mutex_arc.lock().await.read(&node.endpoint).await;
+        let read_result = reader.read().await;
         let read_elapsed = read_start.elapsed();
         let &mut outcome;
 
