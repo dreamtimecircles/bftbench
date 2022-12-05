@@ -131,7 +131,13 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         &running_mutex_arc,
     );
 
-    time::interval(config.run_duration).tick().await;
+    log::debug!("Waiting for {:?}", config.run_duration);
+
+    let mut run_duration = time::interval(config.run_duration);
+    run_duration.tick().await; // Finishes immediately
+    run_duration.tick().await;
+
+    log::debug!("Stopping benchmark");
 
     // Stop reading and writing
     stop(
@@ -153,6 +159,7 @@ struct InProgressWrite {
 fn create_value(config: &Config) -> Vec<u8> {
     let mut value = vec![0u8; config.transaction_size - 26];
     rand::rngs::OsRng.fill_bytes(&mut value);
+    log::debug!("Value generated");
     value
 }
 
@@ -164,6 +171,7 @@ fn start_writes<B: BftBinding + 'static>(
     read_indices: HashSet<usize>,
     running_mutex_arc: &Arc<Mutex<bool>>,
 ) {
+    log::debug!("Starting writers");
     let read_indices_arc = Arc::new(read_indices);
     for (node_idx, writer) in accesses.iter().map(|(node_idx, access)| {
         (
@@ -174,6 +182,7 @@ fn start_writes<B: BftBinding + 'static>(
             },
         )
     }) {
+        log::debug!("Starting writer for node {}", node_idx);
         let value_arc = value_arc.clone();
         let writer = writer.clone();
         spawn(write::<B::Writer>(
@@ -197,10 +206,17 @@ async fn write<W: BftWriter + 'static>(
     read_indices_arc: Arc<HashSet<usize>>,
     running_mutex_arc: Arc<Mutex<bool>>,
 ) {
+    let mut write_interval = time::interval(write_interval);
+    write_interval.tick().await; // Immediate
     loop {
         {
             let running_locked = running_mutex_arc.lock().unwrap();
-            if !*running_locked {
+            let running = *running_locked;
+            if !running {
+                log::debug!(
+                    "Shutting down, bailing out from writes for node {}",
+                    node_idx
+                );
                 break;
             }
         }
@@ -214,11 +230,15 @@ async fn write<W: BftWriter + 'static>(
                 Some(InProgressWrite {
                     start: Instant::now(),
                     join_handle: spawn(async move {
+                        log::debug!("Starting write");
                         let write_start = Instant::now();
                         let result = writer.write(uuid, value_arc).await;
                         let write_elapsed = write_start.elapsed();
                         let outcome = match result {
-                            Ok(()) => "successful",
+                            Ok(()) => {
+                                log::debug!("Write successful");
+                                "successful"
+                            }
                             Err(ref bft_error) => {
                                 log::error!("Write failed: {}", bft_error);
                                 "failed"
@@ -232,7 +252,8 @@ async fn write<W: BftWriter + 'static>(
                 }),
             );
         }
-        time::interval(write_interval).tick().await;
+        log::debug!("Waiting for next schedule");
+        write_interval.tick().await;
     }
 }
 
@@ -242,6 +263,7 @@ fn start_reads<B: BftBinding + 'static>(
     in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
     running_mutex_arc: &Arc<Mutex<bool>>,
 ) -> HashSet<usize> {
+    log::debug!("Starting readers");
     let mut read_indices = HashSet::<usize>::new();
     for (node_idx, access) in accesses.iter() {
         read_indices.insert(*node_idx);
@@ -268,10 +290,16 @@ async fn read<R: BftReader + 'static>(
     in_progress_writes_mutex_arc: Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
     running_mutex_arc: Arc<Mutex<bool>>,
 ) {
+    log::debug!("Starting reader for node {}", node_idx);
     loop {
         {
             let running_locked = running_mutex_arc.lock().unwrap();
-            if !*running_locked {
+            let running = *running_locked;
+            if !running {
+                log::debug!(
+                    "Shutting down, bailing out from reads for node {}",
+                    node_idx
+                );
                 break;
             }
         }
@@ -284,6 +312,8 @@ async fn read<R: BftReader + 'static>(
 
         match read_result {
             Ok(uuid) => {
+                log::debug!("Read {:?}", uuid);
+
                 outcome = "successful";
                 let mut writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
                 match (*writes_locked).remove(&uuid) {
@@ -292,6 +322,8 @@ async fn read<R: BftReader + 'static>(
                         join_handle,
                         mut nodes_awaiting_read,
                     })) => {
+                        log::debug!("Removing {:?}", uuid);
+
                         if !join_handle.is_finished() {
                             panic!(
                                 "Read transaction {:?} while its write is still pending",
@@ -301,20 +333,22 @@ async fn read<R: BftReader + 'static>(
 
                         let node_round_trip = start.elapsed();
                         histogram!(format!("node{}.round_trip", node_idx), node_round_trip);
-                        if nodes_awaiting_read.len() == 1 {
-                            // Last read
-                            histogram!("global.round_trip", node_round_trip);
-                        }
 
                         if nodes_awaiting_read.remove(&node_idx) {
-                            (*writes_locked).insert(
-                                uuid,
-                                Some(InProgressWrite {
-                                    start,
-                                    join_handle,
-                                    nodes_awaiting_read,
-                                }),
-                            );
+                            if nodes_awaiting_read.len() == 0 {
+                                // Last read
+                                log::debug!("Last read");
+                                histogram!("global.round_trip", node_round_trip);
+                            } else {
+                                (*writes_locked).insert(
+                                    uuid,
+                                    Some(InProgressWrite {
+                                        start,
+                                        join_handle,
+                                        nodes_awaiting_read,
+                                    }),
+                                );
+                            }
                         } else {
                             panic!("Duplicate read {:?}", uuid);
                         }
@@ -338,8 +372,10 @@ async fn stop(
     in_progress_reads_mutex: Mutex<Vec<Option<JoinHandle<()>>>>,
     running_mutex_arc: Arc<Mutex<bool>>,
 ) -> Result<()> {
+    log::debug!("Switching off");
     *running_mutex_arc.lock().unwrap() = false;
     let mut in_progress_writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
+    log::debug!("Waiting for writers to finish");
     for (_, write_join_handle) in in_progress_writes_locked.iter_mut() {
         write_join_handle
             .take()
@@ -348,6 +384,7 @@ async fn stop(
             .await
             .unwrap()?;
     }
+    log::debug!("Waiting for readers to finish");
     let mut in_progress_reads_locked = in_progress_reads_mutex.lock().unwrap();
     for read_join_handle in in_progress_reads_locked.iter_mut() {
         read_join_handle

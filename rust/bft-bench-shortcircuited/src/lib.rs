@@ -10,18 +10,18 @@ use tokio::sync::broadcast::{channel, Receiver, Sender};
 
 const CHANNEL_BUFFER_SIZE: usize = 1024;
 
-struct ShortCircuitedBftBinding {
+pub struct ShortCircuitedBftBinding {
     writer: Writer,
     first_reader: Option<Reader>,
     readers: HashMap<NodeEndpoint, Reader>,
 }
 
 #[derive(Clone)]
-struct Writer {
+pub struct Writer {
     sender: Sender<[u8; 16]>,
 }
 
-struct Reader {
+pub struct Reader {
     receiver_factory: Sender<[u8; 16]>,
     receiver: Receiver<[u8; 16]>,
 }

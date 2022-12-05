@@ -7,8 +7,20 @@ authors = ["Fabio Tudone <fabtud@gmail.com>"]
 [dependencies.bft-bench-core]
 path = "../bft-bench-core"
 
+[dependencies.anyhow]
+version = "1.0.66"
+
 [dependencies.async-trait]
 version = "0.1.58"
+
+[dependencies.config]
+version = "0.13.2"
+
+[dependencies.log]
+version = "0.4"
+
+[dependencies.simple_logger]
+version = "4.0.0"
 
 [dependencies.tokio]
 version = "1.21.2"
