@@ -7,7 +7,16 @@ use bft_bench_shortcircuited::ShortCircuitedBftBinding;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    simple_logger::init_with_env().unwrap();
+    env_logger::init();
+
+    tracing::subscriber::set_global_default(
+        tracing_subscriber::fmt::Subscriber::builder()
+            // subscriber configuration
+            .with_max_level(tracing::Level::DEBUG)
+            .finish()
+    ).expect("Unable to set global tracing subscriber");
+
+    let metrics_handle = opinionated_metrics::initialize_cli()?;
 
     let settings = config::Config::builder()
         .add_source(config::File::with_name("Benchmark.toml"))
@@ -29,7 +38,9 @@ async fn main() -> Result<()> {
 
     bft_bench_core::run(config, sc_binding).await?;
 
-    log::info!("Benchmark completed");
+    log::info!("Benchmark completed, stats follow");
+
+    metrics_handle.report().await?;
 
     Ok(())
 }

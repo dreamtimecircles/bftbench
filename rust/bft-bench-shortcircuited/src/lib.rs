@@ -8,7 +8,7 @@ use bft_bench_core::{
 };
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 
-const CHANNEL_BUFFER_SIZE: usize = 1024;
+const CHANNEL_BUFFER_SIZE: usize = 1024 * 1024;
 
 pub struct ShortCircuitedBftBinding {
     writer: Writer,
