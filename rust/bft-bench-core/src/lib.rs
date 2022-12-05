@@ -102,7 +102,8 @@ pub trait BftReader: Send + Clone {
 pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) -> Result<()> {
     let value = create_value(&config);
 
-    let running_mutex_arc = Arc::new(Mutex::new(true));
+    let writes_running_mutex_arc = Arc::new(Mutex::new(true));
+    let reads_running_mutex_arc = Arc::new(Mutex::new(true));
 
     let in_progress_writes_mutex_arc = Arc::new(Mutex::new(HashMap::<
         [u8; 16],
@@ -119,7 +120,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         &accesses,
         &in_progress_reads_mutex,
         &in_progress_writes_mutex_arc,
-        &running_mutex_arc,
+        &reads_running_mutex_arc,
     );
 
     start_writes::<B>(
@@ -128,13 +129,13 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         config.write_interval,
         &in_progress_writes_mutex_arc,
         read_indices,
-        &running_mutex_arc,
+        &writes_running_mutex_arc,
     );
 
     log::debug!("Waiting for {:?}", config.run_duration);
 
     let mut run_duration = time::interval(config.run_duration);
-    run_duration.tick().await; // Finishes immediately
+    run_duration.tick().await; // Immediate
     run_duration.tick().await;
 
     log::debug!("Stopping benchmark");
@@ -143,7 +144,8 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
     stop(
         in_progress_writes_mutex_arc,
         in_progress_reads_mutex,
-        running_mutex_arc,
+        reads_running_mutex_arc,
+        writes_running_mutex_arc,
     )
     .await?;
 
@@ -306,13 +308,14 @@ async fn read<R: BftReader + 'static>(
 
         let read_start = Instant::now();
 
+        log::debug!("Reading");
         let read_result = reader.read().await;
         let read_elapsed = read_start.elapsed();
         let &mut outcome;
 
         match read_result {
             Ok(uuid) => {
-                log::debug!("Read {:?}", uuid);
+                log::debug!("Read transaction");
 
                 outcome = "successful";
                 let mut writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
@@ -322,14 +325,7 @@ async fn read<R: BftReader + 'static>(
                         join_handle,
                         mut nodes_awaiting_read,
                     })) => {
-                        log::debug!("Removing {:?}", uuid);
-
-                        if !join_handle.is_finished() {
-                            panic!(
-                                "Read transaction {:?} while its write is still pending",
-                                uuid
-                            );
-                        }
+                        log::debug!("In-progress read found");
 
                         let node_round_trip = start.elapsed();
                         histogram!(format!("node{}.round_trip", node_idx), node_round_trip);
@@ -337,9 +333,10 @@ async fn read<R: BftReader + 'static>(
                         if nodes_awaiting_read.remove(&node_idx) {
                             if nodes_awaiting_read.len() == 0 {
                                 // Last read
-                                log::debug!("Last read");
+                                log::debug!("Last read for transaction");
                                 histogram!("global.round_trip", node_round_trip);
                             } else {
+                                log::debug!("Last read");
                                 (*writes_locked).insert(
                                     uuid,
                                     Some(InProgressWrite {
@@ -370,10 +367,22 @@ async fn read<R: BftReader + 'static>(
 async fn stop(
     in_progress_writes_mutex_arc: Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
     in_progress_reads_mutex: Mutex<Vec<Option<JoinHandle<()>>>>,
-    running_mutex_arc: Arc<Mutex<bool>>,
+    reads_running_mutex_arc: Arc<Mutex<bool>>,
+    writes_running_mutex_arc: Arc<Mutex<bool>>,
 ) -> Result<()> {
-    log::debug!("Switching off");
-    *running_mutex_arc.lock().unwrap() = false;
+    log::debug!("Switching off reads");
+    *reads_running_mutex_arc.lock().unwrap() = false;
+    log::debug!("Waiting for readers to finish");
+    let mut in_progress_reads_locked = in_progress_reads_mutex.lock().unwrap();
+    for read_join_handle in in_progress_reads_locked.iter_mut() {
+        read_join_handle
+            .take()
+            .expect("Read future already awaited for")
+            .await
+            .unwrap();
+    }
+    log::debug!("Switching off writes");
+    *writes_running_mutex_arc.lock().unwrap() = false;
     let mut in_progress_writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
     log::debug!("Waiting for writers to finish");
     for (_, write_join_handle) in in_progress_writes_locked.iter_mut() {
@@ -383,15 +392,6 @@ async fn stop(
             .join_handle
             .await
             .unwrap()?;
-    }
-    log::debug!("Waiting for readers to finish");
-    let mut in_progress_reads_locked = in_progress_reads_mutex.lock().unwrap();
-    for read_join_handle in in_progress_reads_locked.iter_mut() {
-        read_join_handle
-            .take()
-            .expect("Read future already awaited for")
-            .await
-            .unwrap();
     }
     Ok(())
 }

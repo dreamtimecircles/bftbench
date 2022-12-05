@@ -7,7 +7,7 @@ use bft_bench_shortcircuited::ShortCircuitedBftBinding;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    simple_logger::SimpleLogger::new().env().init().unwrap();
+    simple_logger::init_with_env().unwrap();
 
     let settings = config::Config::builder()
         .add_source(config::File::with_name("Benchmark.toml"))
@@ -27,5 +27,9 @@ async fn main() -> Result<()> {
 
     log::info!("Starting benchmark");
 
-    Ok(bft_bench_core::run(config, sc_binding).await?)
+    bft_bench_core::run(config, sc_binding).await?;
+
+    log::info!("Benchmark completed");
+
+    Ok(())
 }
