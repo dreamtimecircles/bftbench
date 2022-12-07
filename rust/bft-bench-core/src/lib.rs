@@ -7,6 +7,7 @@ use std::{error::Error, time::Duration};
 
 use async_trait::async_trait;
 
+use bytes::Bytes;
 use rand::RngCore;
 use tokio::task::{spawn, JoinHandle};
 use tokio::time;
@@ -15,6 +16,8 @@ use uuid::Uuid;
 use serde_derive::{Deserialize, Serialize};
 
 use metrics::histogram;
+
+const UUID_SIZE: usize = 16;
 
 #[derive(Debug)]
 pub struct BftError {
@@ -91,7 +94,7 @@ pub enum NodeAccess<Writer: BftWriter, Reader: BftReader> {
 
 #[async_trait]
 pub trait BftWriter: Send + Clone {
-    async fn write(&mut self, key: Uuid, value: Arc<Vec<u8>>) -> Result<()>;
+    async fn write(&mut self, key: Uuid, value: Bytes) -> Result<()>;
 }
 
 #[async_trait]
@@ -122,7 +125,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
     );
 
     start_writes::<B>(
-        Arc::new(value),
+        value.clone(),
         &accesses,
         config.write_interval,
         &in_progress_writes_mutex_arc,
@@ -156,15 +159,16 @@ struct InProgressWrite {
     nodes_awaiting_read: HashSet<usize>,
 }
 
-fn create_value(config: &Config) -> Vec<u8> {
-    let mut value = vec![0u8; config.transaction_size - 26];
+fn create_value(config: &Config) -> Bytes {
+    let value_size = config.transaction_size - UUID_SIZE - 1;
+    let mut value = vec![0u8; value_size];
     rand::rngs::OsRng.fill_bytes(&mut value);
-    log::debug!("Value generated");
-    value
+    log::debug!("Random value of size {} generated", value_size);
+    Bytes::from(value)
 }
 
 fn start_writes<B: BftBinding + 'static>(
-    value_arc: Arc<Vec<u8>>,
+    value: Bytes,
     accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
     write_interval: Duration,
     in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
@@ -183,10 +187,10 @@ fn start_writes<B: BftBinding + 'static>(
         )
     }) {
         log::debug!("Starting writer for node {}", node_idx);
-        let value_arc = value_arc.clone();
+        let value = value.clone();
         let writer = writer.clone();
         spawn(write::<B::Writer>(
-            value_arc,
+            value,
             writer,
             *node_idx,
             write_interval,
@@ -198,7 +202,7 @@ fn start_writes<B: BftBinding + 'static>(
 }
 
 async fn write<W: BftWriter + 'static>(
-    value_arc: Arc<Vec<u8>>,
+    value: Bytes,
     writer: W,
     node_idx: usize,
     write_interval: Duration,
@@ -223,7 +227,7 @@ async fn write<W: BftWriter + 'static>(
         {
             let mut writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
             let uuid = Uuid::new_v4();
-            let value_arc = value_arc.clone();
+            let value = value.clone();
             let mut writer = writer.clone();
             (*writes_locked).insert(
                 uuid,
@@ -232,7 +236,7 @@ async fn write<W: BftWriter + 'static>(
                     join_handle: spawn(async move {
                         log::debug!("Starting write");
                         let write_start = Instant::now();
-                        let result = writer.write(uuid, value_arc).await;
+                        let result = writer.write(uuid, value).await;
                         let write_elapsed = write_start.elapsed();
                         let outcome = match result {
                             Ok(()) => {

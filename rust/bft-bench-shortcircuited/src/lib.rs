@@ -1,7 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 
+use bytes::Bytes;
 use uuid::Uuid;
 
 use bft_bench_core::{
@@ -85,7 +86,7 @@ impl BftBinding for ShortCircuitedBftBinding {
 
 #[async_trait]
 impl BftWriter for Writer {
-    async fn write(&mut self, key: Uuid, _value: Arc<Vec<u8>>) -> Result<()> {
+    async fn write(&mut self, key: Uuid, _value: Bytes) -> Result<()> {
         match self.sender.send(key) {
             Ok(_) => Ok(()),
             Err(error) => Err(BftError::dynamic(format!(
