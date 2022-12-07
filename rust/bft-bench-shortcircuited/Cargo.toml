@@ -10,6 +10,10 @@ path = "../bft-bench-core"
 [dependencies.anyhow]
 version = "1.0.66"
 
+[dependencies.uuid]
+version = "1.2.0"
+features = ["v4"]
+
 [dependencies.async-trait]
 version = "0.1.58"
 

@@ -13,8 +13,9 @@ async fn main() -> Result<()> {
         tracing_subscriber::fmt::Subscriber::builder()
             // subscriber configuration
             .with_max_level(tracing::Level::DEBUG)
-            .finish()
-    ).expect("Unable to set global tracing subscriber");
+            .finish(),
+    )
+    .expect("Unable to set global tracing subscriber");
 
     let metrics_handle = opinionated_metrics::initialize_cli()?;
 

@@ -91,12 +91,12 @@ pub enum NodeAccess<Writer: BftWriter, Reader: BftReader> {
 
 #[async_trait]
 pub trait BftWriter: Send + Clone {
-    async fn write(&mut self, key: [u8; 16], value: Arc<Vec<u8>>) -> Result<()>;
+    async fn write(&mut self, key: Uuid, value: Arc<Vec<u8>>) -> Result<()>;
 }
 
 #[async_trait]
 pub trait BftReader: Send + Clone {
-    async fn read(&mut self) -> Result<[u8; 16]>;
+    async fn read(&mut self) -> Result<Uuid>;
 }
 
 pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) -> Result<()> {
@@ -105,10 +105,8 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
     let writes_running_mutex_arc = Arc::new(Mutex::new(true));
     let reads_running_mutex_arc = Arc::new(Mutex::new(true));
 
-    let in_progress_writes_mutex_arc = Arc::new(Mutex::new(HashMap::<
-        [u8; 16],
-        Option<InProgressWrite>,
-    >::new()));
+    let in_progress_writes_mutex_arc =
+        Arc::new(Mutex::new(HashMap::<Uuid, Option<InProgressWrite>>::new()));
     let in_progress_reads_mutex = Mutex::new(Vec::<Option<JoinHandle<()>>>::new());
 
     let mut accesses = HashMap::<usize, NodeAccess<B::Writer, B::Reader>>::new();
@@ -169,7 +167,7 @@ fn start_writes<B: BftBinding + 'static>(
     value_arc: Arc<Vec<u8>>,
     accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
     write_interval: Duration,
-    in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
+    in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
     read_indices: HashSet<usize>,
     running_mutex_arc: &Arc<Mutex<bool>>,
 ) {
@@ -204,7 +202,7 @@ async fn write<W: BftWriter + 'static>(
     writer: W,
     node_idx: usize,
     write_interval: Duration,
-    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
+    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
     read_indices_arc: Arc<HashSet<usize>>,
     running_mutex_arc: Arc<Mutex<bool>>,
 ) {
@@ -224,7 +222,7 @@ async fn write<W: BftWriter + 'static>(
         }
         {
             let mut writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
-            let uuid = Uuid::new_v4().into_bytes();
+            let uuid = Uuid::new_v4();
             let value_arc = value_arc.clone();
             let mut writer = writer.clone();
             (*writes_locked).insert(
@@ -262,7 +260,7 @@ async fn write<W: BftWriter + 'static>(
 fn start_reads<B: BftBinding + 'static>(
     accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
     in_progress_reads_mutex: &Mutex<Vec<Option<JoinHandle<()>>>>,
-    in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
+    in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
     running_mutex_arc: &Arc<Mutex<bool>>,
 ) -> HashSet<usize> {
     log::debug!("Starting readers");
@@ -289,7 +287,7 @@ fn start_reads<B: BftBinding + 'static>(
 async fn read<R: BftReader + 'static>(
     node_idx: usize,
     mut reader: R,
-    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
+    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
     running_mutex_arc: Arc<Mutex<bool>>,
 ) {
     log::debug!("Starting reader for node {}", node_idx);
@@ -315,7 +313,7 @@ async fn read<R: BftReader + 'static>(
 
         match read_result {
             Ok(uuid) => {
-                log::debug!("Read transaction");
+                log::debug!("Read transaction {}", uuid);
 
                 outcome = "successful";
                 let mut writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
@@ -325,7 +323,7 @@ async fn read<R: BftReader + 'static>(
                         join_handle,
                         mut nodes_awaiting_read,
                     })) => {
-                        log::debug!("In-progress read found");
+                        log::debug!("In-progress read found for transaction {}", uuid);
 
                         let node_round_trip = start.elapsed();
                         histogram!(format!("node{}.round_trip", node_idx), node_round_trip);
@@ -333,10 +331,14 @@ async fn read<R: BftReader + 'static>(
                         if nodes_awaiting_read.remove(&node_idx) {
                             if nodes_awaiting_read.len() == 0 {
                                 // Last read
-                                log::debug!("Last read for transaction");
+                                log::debug!("Last read for transaction {}", uuid);
                                 histogram!("global.round_trip", node_round_trip);
                             } else {
-                                log::debug!("Last read");
+                                log::debug!(
+                                    "{} reads still pending for transaction {}",
+                                    nodes_awaiting_read.len(),
+                                    uuid
+                                );
                                 (*writes_locked).insert(
                                     uuid,
                                     Some(InProgressWrite {
@@ -347,10 +349,10 @@ async fn read<R: BftReader + 'static>(
                                 );
                             }
                         } else {
-                            panic!("Duplicate read {:?}", uuid);
+                            panic!("Duplicate read {}", uuid);
                         }
                     }
-                    _ => panic!("Duplicate read {:?}", uuid),
+                    _ => panic!("Duplicate read {}", uuid),
                 }
             }
             Err(bft_error) => {
@@ -365,7 +367,7 @@ async fn read<R: BftReader + 'static>(
 }
 
 async fn stop(
-    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<[u8; 16], Option<InProgressWrite>>>>,
+    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
     in_progress_reads_mutex: Mutex<Vec<Option<JoinHandle<()>>>>,
     reads_running_mutex_arc: Arc<Mutex<bool>>,
     writes_running_mutex_arc: Arc<Mutex<bool>>,

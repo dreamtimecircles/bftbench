@@ -2,6 +2,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 
+use uuid::Uuid;
+
 use bft_bench_core::{
     BftBinding, BftError, BftReader, BftWriter, Node, NodeAccess, NodeEndpoint, ReadWriteNode,
     Result, WriteNode,
@@ -18,12 +20,12 @@ pub struct ShortCircuitedBftBinding {
 
 #[derive(Clone)]
 pub struct Writer {
-    sender: Sender<[u8; 16]>,
+    sender: Sender<Uuid>,
 }
 
 pub struct Reader {
-    receiver_factory: Sender<[u8; 16]>,
-    receiver: Receiver<[u8; 16]>,
+    receiver_factory: Sender<Uuid>,
+    receiver: Receiver<Uuid>,
 }
 
 impl Clone for Reader {
@@ -42,7 +44,7 @@ impl BftBinding for ShortCircuitedBftBinding {
     type Reader = Reader;
 
     fn new() -> Self {
-        let (sender, receiver) = channel::<[u8; 16]>(CHANNEL_BUFFER_SIZE);
+        let (sender, receiver) = channel::<Uuid>(CHANNEL_BUFFER_SIZE);
         let sender_for_reader = sender.clone();
         ShortCircuitedBftBinding {
             writer: Writer { sender },
@@ -83,7 +85,7 @@ impl BftBinding for ShortCircuitedBftBinding {
 
 #[async_trait]
 impl BftWriter for Writer {
-    async fn write(&mut self, key: [u8; 16], _value: Arc<Vec<u8>>) -> Result<()> {
+    async fn write(&mut self, key: Uuid, _value: Arc<Vec<u8>>) -> Result<()> {
         match self.sender.send(key) {
             Ok(_) => Ok(()),
             Err(error) => Err(BftError::dynamic(format!(
@@ -96,7 +98,7 @@ impl BftWriter for Writer {
 
 #[async_trait]
 impl BftReader for Reader {
-    async fn read(&mut self) -> Result<[u8; 16]> {
+    async fn read(&mut self) -> Result<Uuid> {
         match self.receiver.recv().await {
             Ok(uuid) => Ok(uuid),
             Err(error) => Err(BftError::dynamic(format!(
