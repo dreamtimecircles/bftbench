@@ -9,7 +9,7 @@ version = "0.1.58"
 
 [dependencies.tokio]
 version = "1.21.2"
-features = ["rt-multi-thread", "time", "sync"]
+features = ["macros", "rt-multi-thread", "sync", "time"]
 
 [dependencies.uuid]
 version = "1.2.0"

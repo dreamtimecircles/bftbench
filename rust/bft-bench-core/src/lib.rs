@@ -1,274 +1,270 @@
-use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::fmt::Display;
-use std::sync::{Arc, Mutex};
-use std::time::Instant;
-use std::{error::Error, time::Duration};
+use std::time::{Duration, Instant};
 
-use async_trait::async_trait;
-
-use bytes::Bytes;
-use rand::RngCore;
-use tokio::task::{spawn, JoinHandle};
-use tokio::time;
+use reader::ReaderReply;
+use tokio::task::spawn;
+use tokio::time::sleep;
+use tokio::{sync::broadcast, sync::mpsc};
 use uuid::Uuid;
 
-use serde_derive::{Deserialize, Serialize};
-
 use histogram::Histogram;
+use worker::WorkerRequest;
+use writer::WriterReply;
+
+pub mod bft_binding;
+pub mod config;
+pub mod result;
+pub mod stats;
+pub use {bft_binding::*, config::*, result::*, stats::*};
+
+mod reader;
+mod worker;
+mod writer;
 
 const UUID_SIZE: usize = 16;
 
-#[derive(Debug)]
-pub struct BftError {
-    message: Cow<'static, str>,
+const CONTROL_CHANNELS_BUFFER: usize = 1;
+const DATA_CHANNELS_BUFFER: usize = 1024 * 1024;
+
+struct InProgressWrite {
+    write_start: Instant,
+    nodes_awaiting_read: HashSet<usize>,
 }
 
-impl Error for BftError {}
-
-impl BftError {
-    pub fn fixed(message: &'static str) -> Self {
-        BftError {
-            message: Cow::Borrowed(message),
-        }
-    }
-
-    pub fn dynamic(message: String) -> Self {
-        BftError {
-            message: Cow::Owned(message),
-        }
-    }
-}
-
-impl Display for BftError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.message)
-    }
-}
-
-pub type Result<T> = core::result::Result<T, BftError>;
-
-#[derive(Default, Debug, Serialize, Deserialize)]
-pub struct Config {
-    pub run_duration: Duration,
-    pub write_interval: Duration,
-    pub transaction_size: usize,
-    pub nodes: Vec<Node>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Node {
-    Write(WriteNode),
-    ReadWrite(ReadWriteNode),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ReadWriteNode {
-    pub node: WriteNode,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WriteNode {
-    pub endpoint: NodeEndpoint,
-}
-
-#[derive(Default, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct NodeEndpoint {
-    pub host: String,
-    pub port: u16,
-}
-
-#[async_trait]
-pub trait BftBinding {
-    type Writer: BftWriter;
-    type Reader: BftReader;
-
-    fn new() -> Self;
-    async fn access(&mut self, node: Node) -> NodeAccess<Self::Writer, Self::Reader>;
-}
-
-pub enum NodeAccess<Writer: BftWriter, Reader: BftReader> {
-    ReadWriteAccess { writer: Writer, reader: Reader },
-    WriteOnlyAccess { writer: Writer },
-}
-
-#[derive(Debug)]
-pub struct Stats {
-    pub global_writes_successful_nanos: Histogram,
-    pub global_writes_failed_nanos: Histogram,
-    pub node_writes_successful_nanos: Vec<Histogram>,
-    pub node_writes_failed_nanos: Vec<Histogram>,
-    pub global_reads_successful_nanos: Histogram,
-    pub global_reads_failed_nanos: Histogram,
-    pub node_reads_successful_nanos: Vec<Histogram>,
-    pub node_reads_failed_nanos: Vec<Histogram>,
-    pub global_roundtrip_nanos: Histogram,
-    pub nodes_roundtrip_nanos: Vec<Histogram>,
-}
-
-impl Stats {
-    fn new(nodes_count: usize, read_nodes_count: usize) -> Self {
-        Stats {
-            global_writes_successful_nanos: Histogram::new(),
-            global_writes_failed_nanos: Histogram::new(),
-            node_writes_successful_nanos: vec![Histogram::new(); nodes_count],
-            node_writes_failed_nanos: vec![Histogram::new(); nodes_count],
-            global_reads_successful_nanos: Histogram::new(),
-            global_reads_failed_nanos: Histogram::new(),
-            node_reads_successful_nanos: vec![Histogram::new(); read_nodes_count],
-            node_reads_failed_nanos: vec![Histogram::new(); read_nodes_count],
-            global_roundtrip_nanos: Histogram::new(),
-            nodes_roundtrip_nanos: vec![Histogram::new(); read_nodes_count],
-        }
-    }
-}
-
-impl Display for Stats {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        indoc::writedoc!(
-            f,
-            "
-            {{
-                global-writes: {{
-                    successful: {{
-                        count: {}
-                        avg-duration: {}
-                    }}
-                    failed: {{
-                        count: {}
-                    }}
-                }}
-                global-reads: {{
-                    successful: {{
-                        count: {}
-                        avg-duration: {}
-                    }}
-                    failed: {{
-                        count: {}
-                    }}
-                }}
-                global-roundtrips: {{
-                    count: {}
-                    avg-duration: {}
-                }}
-            }}",
-            self.global_writes_successful_nanos.entries(),
-            self.global_writes_successful_nanos.mean().unwrap(),
-            self.global_writes_failed_nanos.entries(),
-            self.global_reads_successful_nanos.entries(),
-            self.global_reads_successful_nanos.mean().unwrap(),
-            self.global_reads_failed_nanos.entries(),
-            self.global_roundtrip_nanos.entries(),
-            self.global_roundtrip_nanos.mean().unwrap(),
-        )
-    }
-}
-
-#[async_trait]
-pub trait BftWriter: Send + Clone {
-    async fn write(&mut self, key: Uuid, value: Bytes) -> Result<()>;
-}
-
-#[async_trait]
-pub trait BftReader: Send + Clone {
-    async fn read(&mut self) -> Result<Uuid>;
+struct BftBenchmarkState {
+    in_progress_writes: HashMap<Uuid, Option<InProgressWrite>>,
+    tx_writers_control: broadcast::Sender<WorkerRequest>,
+    rx_incoming_writes: mpsc::Receiver<WriterReply>,
+    tx_readers_control: broadcast::Sender<WorkerRequest>,
+    rx_incoming_reads: mpsc::Receiver<ReaderReply>,
+    stats: Stats,
 }
 
 pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) -> Result<Stats> {
-    let value = create_value(&config);
+    let (tx_writers_control, rx_writers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
+    let (tx_incoming_writes, rx_incoming_writes) = mpsc::channel(DATA_CHANNELS_BUFFER);
+    let (tx_readers_control, rx_readers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
+    let (tx_incoming_reads, rx_incoming_reads) = mpsc::channel(DATA_CHANNELS_BUFFER);
 
-    let writes_running_mutex_arc = Arc::new(Mutex::new(true));
-    let reads_running_mutex_arc = Arc::new(Mutex::new(true));
+    let mut state = BftBenchmarkState {
+        in_progress_writes: HashMap::<Uuid, Option<InProgressWrite>>::new(),
+        tx_writers_control,
+        rx_incoming_writes,
+        tx_readers_control,
+        rx_incoming_reads,
+        stats: Stats::new(
+            config.nodes.len(),
+            config
+                .nodes
+                .iter()
+                .filter(|node| match **node {
+                    Node::ReadWrite(_) => true,
+                    _ => false,
+                })
+                .collect::<Vec<_>>()
+                .len(),
+        ),
+    };
 
-    let in_progress_writes_mutex_arc =
-        Arc::new(Mutex::new(HashMap::<Uuid, Option<InProgressWrite>>::new()));
-    let in_progress_reads_mutex = Mutex::new(Vec::<Option<JoinHandle<()>>>::new());
-
-    let stats_mutex_arc = Arc::new(Mutex::new(Stats::new(
-        config.nodes.len(),
-        config
-            .nodes
-            .iter()
-            .filter(|node| match **node {
-                Node::ReadWrite(_) => true,
-                _ => false,
-            })
-            .collect::<Vec<_>>()
-            .len(),
-    )));
+    let mut writers_to_go = config
+        .nodes
+        .iter()
+        .enumerate()
+        .map(|(node_idx, _)| node_idx)
+        .collect::<HashSet<_>>();
 
     let mut accesses = HashMap::<usize, NodeAccess<B::Writer, B::Reader>>::new();
     for (node_idx, node) in config.nodes.into_iter().enumerate() {
         accesses.insert(node_idx, bft_binding.access(node).await);
     }
 
-    let read_indices = start_reads::<B>(
-        &accesses,
-        &in_progress_reads_mutex,
-        &in_progress_writes_mutex_arc,
-        &reads_running_mutex_arc,
-        &stats_mutex_arc,
-    );
+    let read_indices = start_reads::<B>(&accesses, rx_readers_control, tx_incoming_reads);
+    let mut readers_to_go = read_indices.clone();
+
+    log::info!("Read indices: {:?}", read_indices);
 
     start_writes::<B>(
-        value.clone(),
+        config.transaction_size - UUID_SIZE - 1,
         &accesses,
         config.write_interval,
-        &in_progress_writes_mutex_arc,
-        read_indices,
-        &writes_running_mutex_arc,
-        &stats_mutex_arc,
+        rx_writers_control,
+        tx_incoming_writes,
     );
 
-    log::debug!("Waiting for {:?}", config.run_duration);
+    log::info!(
+        "The benchmark will be run for {} seconds",
+        config.run_duration.as_secs_f64()
+    );
 
-    let mut run_duration = time::interval(config.run_duration);
-    run_duration.tick().await; // Immediate
-    run_duration.tick().await;
+    let (tx_complete, mut rx_complete) = mpsc::channel(CONTROL_CHANNELS_BUFFER);
+    spawn(async move {
+        sleep(config.run_duration).await;
+        tx_complete
+            .send(())
+            .await
+            .expect("Cannot send benchmark completion request");
+    });
 
-    log::debug!("Stopping benchmark");
+    loop {
+        tokio::select! {
+            write = state.rx_incoming_writes.recv() => {
+                match write {
+                    Some(write) => {
+                        match write {
+                            WriterReply::SuccessfulWrite { write_start, write_duration, uuid, node_idx } => {
+                                log::info!("Writer {} succeeded write {}", node_idx, uuid);
+                                let write_duration_nanos = u64_nanos(write_duration);
+                                increment_histogram(&mut state.stats.global_writes_successful_nanos, write_duration_nanos);
+                                increment_histogram(unwrap_histogram(
+                                    state.stats.node_writes_successful_nanos.get_mut(node_idx),
+                                ), write_duration_nanos);
+                                state.in_progress_writes.insert(
+                                    uuid,
+                                    Some(InProgressWrite {
+                                        write_start,
+                                        nodes_awaiting_read: read_indices.clone(),
+                                    })
+                                );
+                                log::info!(
+                                    "In-progress writes count after Writer {} spawned write {}: {}",
+                                    node_idx,
+                                    uuid,
+                                    state.in_progress_writes.len()
+                                );
+                            },
+                            WriterReply::FailedWrite { write_duration, uuid, node_idx } => {
+                                log::error!("Writer {} failed write {}", node_idx, uuid);
+                                let write_duration_nanos = u64_nanos(write_duration);
+                                increment_histogram(&mut state.stats.global_writes_failed_nanos, write_duration_nanos);
+                                increment_histogram(unwrap_histogram(
+                                    state.stats.node_writes_failed_nanos.get_mut(node_idx),
+                                ), write_duration_nanos);
+                            },
+                            WriterReply::Completed { node_idx } => {
+                                log::info!("Writer {} completed", node_idx);
+                                writers_to_go.remove(&node_idx);
+                                if writers_to_go.is_empty() && readers_to_go.is_empty() {
+                                    break;
+                                }
+                            },
+                        };
+                    },
+                    None => log::info!("All writers closed the sender"),
+                }
+            }
+            read = state.rx_incoming_reads.recv() => {
+                match read {
+                    Some(read) => {
+                        match read {
+                            ReaderReply::SuccessfulRead { read_duration, uuid, node_idx } => {
+                                let read_duration_nanos = u64_nanos(read_duration);
+                                increment_histogram(&mut state.stats.global_reads_successful_nanos, read_duration_nanos);
+                                increment_histogram(unwrap_histogram(
+                                    state.stats.node_reads_successful_nanos.get_mut(node_idx),
+                                ), read_duration_nanos);
+                                match state.in_progress_writes.remove(&uuid) {
+                                    Some(Some(InProgressWrite {
+                                        write_start,
+                                        mut nodes_awaiting_read,
+                                    })) => {
+                                        let node_round_trip_nanos = u64_nanos(write_start.elapsed());
 
-    // Stop reading and writing
-    stop(
-        in_progress_writes_mutex_arc,
-        in_progress_reads_mutex,
-        reads_running_mutex_arc,
-        writes_running_mutex_arc,
-    )
-    .await?;
+                                        log::info!(
+                                            "Reader {}: in-progress transaction {} completed in {} nanos",
+                                            node_idx,
+                                            uuid,
+                                            node_round_trip_nanos
+                                        );
 
-    // TODO improve error handling
-    Ok(Arc::try_unwrap(stats_mutex_arc)
-        .unwrap()
-        .into_inner()
-        .unwrap())
-}
+                                        increment_histogram(
+                                            unwrap_histogram(state.stats.nodes_roundtrip_nanos.get_mut(node_idx)),
+                                            node_round_trip_nanos,
+                                        );
 
-struct InProgressWrite {
-    start: Instant,
-    join_handle: JoinHandle<Result<()>>,
-    nodes_awaiting_read: HashSet<usize>,
-}
+                                        if nodes_awaiting_read.remove(&node_idx) {
+                                            if nodes_awaiting_read.len() == 0 {
+                                                // Last read
+                                                log::info!(
+                                                    "Reader {}: last read for transaction {}",
+                                                    node_idx,
+                                                    uuid
+                                                );
+                                                increment_histogram(
+                                                    &mut state.stats.global_roundtrip_nanos,
+                                                    node_round_trip_nanos,
+                                                );
+                                            } else {
+                                                log::info!(
+                                                    "Reader {}: {} reads still pending for transaction {}",
+                                                    node_idx,
+                                                    nodes_awaiting_read.len(),
+                                                    uuid
+                                                );
+                                                state.in_progress_writes.insert(
+                                                    uuid,
+                                                    Some(InProgressWrite {
+                                                        write_start,
+                                                        nodes_awaiting_read,
+                                                    }),
+                                                );
+                                            }
+                                        } else {
+                                            log::error!("Reader {}: duplicate read {}", node_idx, uuid);
+                                            panic!("Reader {}: duplicate read {}", node_idx, uuid);
+                                        }
+                                    }
+                                    _ => {
+                                        log::error!("Reader {}: duplicate read {}", node_idx, uuid);
+                                        panic!("Reader {}: duplicate read {}", node_idx, uuid)
+                                    }
+                                }
+                                log::info!(
+                                    "Reader {}: in-progress writes count after {} read completed: {}",
+                                    node_idx,
+                                    uuid,
+                                    state.in_progress_writes.len()
+                                );
+                            },
 
-fn create_value(config: &Config) -> Bytes {
-    let value_size = config.transaction_size - UUID_SIZE - 1;
-    let mut value = vec![0u8; value_size];
-    rand::rngs::OsRng.fill_bytes(&mut value);
-    log::debug!("Random value of size {} generated", value_size);
-    Bytes::from(value)
+                            ReaderReply::FailedRead { read_duration, bft_error, node_idx } => {
+                                log::error!("Reader {} failed read: {}", node_idx, bft_error);
+                                let read_duration_nanos = u64_nanos(read_duration);
+                                increment_histogram(&mut state.stats.global_reads_failed_nanos, read_duration_nanos);
+                                increment_histogram(unwrap_histogram(
+                                    state.stats.node_reads_failed_nanos.get_mut(node_idx),
+                                ), read_duration_nanos);
+                            },
+                            ReaderReply::Completed { node_idx } => {
+                                log::info!("Reader {} completed", node_idx);
+                                readers_to_go.remove(&node_idx);
+                                if writers_to_go.is_empty() && readers_to_go.is_empty() {
+                                    break;
+                                }
+                            },
+                        };
+                    },
+                    None =>  log::info!("All readers closed the sender"),
+                }
+                ()
+            }
+            _ = rx_complete.recv() => {
+                log::info!("Benchmark duration elapsed, requesting readers' and writers' completion");
+                request_stop(&mut state);
+            }
+        }
+    }
+
+    Ok(state.stats)
 }
 
 fn start_writes<B: BftBinding + 'static>(
-    value: Bytes,
+    value_size: usize,
     accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
     write_interval: Duration,
-    in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
-    read_indices: HashSet<usize>,
-    running_mutex_arc: &Arc<Mutex<bool>>,
-    stats_mutex_arc: &Arc<Mutex<Stats>>,
+    rx_writers_control: broadcast::Receiver<WorkerRequest>,
+    tx_incoming_writes: mpsc::Sender<WriterReply>,
 ) {
-    log::debug!("Starting writers");
-    let read_indices_arc = Arc::new(read_indices);
+    log::info!("Starting writers");
     for (node_idx, writer) in accesses.iter().map(|(node_idx, access)| {
         (
             node_idx,
@@ -278,243 +274,55 @@ fn start_writes<B: BftBinding + 'static>(
             },
         )
     }) {
-        log::debug!("Starting writer for node {}", node_idx);
-        let value = value.clone();
+        log::info!("Starting writer for node {}", node_idx);
         let writer = writer.clone();
-        spawn(write::<B::Writer>(
-            value,
+        spawn(writer::write::<B::Writer>(
+            value_size,
             writer,
             *node_idx,
             write_interval,
-            in_progress_writes_mutex_arc.clone(),
-            read_indices_arc.clone(),
-            running_mutex_arc.clone(),
-            stats_mutex_arc.clone(),
+            rx_writers_control.resubscribe(),
+            tx_incoming_writes.clone(),
         ));
-    }
-}
-
-async fn write<W: BftWriter + 'static>(
-    value: Bytes,
-    writer: W,
-    node_idx: usize,
-    write_interval: Duration,
-    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
-    read_indices_arc: Arc<HashSet<usize>>,
-    running_mutex_arc: Arc<Mutex<bool>>,
-    stats_mutex_arc: Arc<Mutex<Stats>>,
-) {
-    let mut write_interval = time::interval(write_interval);
-    write_interval.tick().await; // Immediate
-    loop {
-        {
-            let running_locked = running_mutex_arc.lock().unwrap();
-            let running = *running_locked;
-            if !running {
-                log::debug!(
-                    "Shutting down, bailing out from writes for node {}",
-                    node_idx
-                );
-                break;
-            }
-        }
-        {
-            let mut writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
-            let uuid = Uuid::new_v4();
-            let value = value.clone();
-            let mut writer = writer.clone();
-            let stats_mutex_arc = stats_mutex_arc.clone();
-            (*writes_locked).insert(
-                uuid,
-                Some(InProgressWrite {
-                    start: Instant::now(),
-                    join_handle: spawn(async move {
-                        log::debug!("Starting write {}", uuid);
-                        let write_start = Instant::now();
-                        let result = writer.write(uuid, value).await;
-                        let write_elapsed_nanos = elapsed_nanos(write_start);
-                        let stats = &mut *stats_mutex_arc.lock().unwrap();
-                        let (global_histo, node_histo);
-                        match result {
-                            Ok(()) => {
-                                log::debug!("Write {} successful", uuid);
-                                global_histo = &mut stats.global_writes_successful_nanos;
-                                node_histo = unwrap_histogram(
-                                    stats.node_writes_successful_nanos.get_mut(node_idx),
-                                );
-                            }
-                            Err(ref bft_error) => {
-                                log::error!("Write {} failed: {}", uuid, bft_error);
-                                global_histo = &mut stats.global_writes_failed_nanos;
-                                node_histo = unwrap_histogram(
-                                    stats.node_writes_failed_nanos.get_mut(node_idx),
-                                );
-                            }
-                        };
-                        increment_histogram(global_histo, write_elapsed_nanos);
-                        increment_histogram(node_histo, write_elapsed_nanos);
-                        result
-                    }),
-                    nodes_awaiting_read: (*read_indices_arc).clone(),
-                }),
-            );
-        }
-        log::debug!("Waiting for next schedule");
-        write_interval.tick().await;
     }
 }
 
 fn start_reads<B: BftBinding + 'static>(
     accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
-    in_progress_reads_mutex: &Mutex<Vec<Option<JoinHandle<()>>>>,
-    in_progress_writes_mutex_arc: &Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
-    running_mutex_arc: &Arc<Mutex<bool>>,
-    stats_mutex_arc: &Arc<Mutex<Stats>>,
+    rx_readers_control: broadcast::Receiver<WorkerRequest>,
+    tx_incoming_reads: mpsc::Sender<ReaderReply>,
 ) -> HashSet<usize> {
-    log::debug!("Starting readers");
+    log::info!("Starting readers");
     let mut read_indices = HashSet::<usize>::new();
     for (node_idx, access) in accesses.iter() {
-        read_indices.insert(*node_idx);
-        let mut reads = in_progress_reads_mutex.lock().unwrap();
         match access {
             NodeAccess::ReadWriteAccess { writer: _, reader } => {
+                read_indices.insert(*node_idx);
                 let reader = reader.clone();
-                (*reads).push(Some(spawn(read::<B::Reader>(
+                spawn(reader::read::<B::Reader>(
                     *node_idx,
                     reader,
-                    in_progress_writes_mutex_arc.clone(),
-                    running_mutex_arc.clone(),
-                    stats_mutex_arc.clone(),
-                ))));
+                    rx_readers_control.resubscribe(),
+                    tx_incoming_reads.clone(),
+                ));
             }
             _ => (),
         }
+        log::info!("start_reads: state unlocked");
     }
     read_indices
 }
 
-async fn read<R: BftReader + 'static>(
-    node_idx: usize,
-    mut reader: R,
-    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
-    running_mutex_arc: Arc<Mutex<bool>>,
-    stats_mutex_arc: Arc<Mutex<Stats>>,
-) {
-    log::debug!("Starting reader for node {}", node_idx);
-    loop {
-        {
-            let running_locked = running_mutex_arc.lock().unwrap();
-            let running = *running_locked;
-            if !running {
-                log::debug!(
-                    "Shutting down, bailing out from reads for node {}",
-                    node_idx
-                );
-                break;
-            }
-        }
-
-        let read_start = Instant::now();
-
-        log::debug!("Reading");
-        let read_result = reader.read().await;
-        let read_elapsed = elapsed_nanos(read_start);
-        let stats = &mut *stats_mutex_arc.lock().unwrap();
-
-        let (global_histo, node_histo);
-        match read_result {
-            Ok(uuid) => {
-                log::debug!("Read transaction {}", uuid);
-                global_histo = &mut stats.global_reads_successful_nanos;
-                node_histo = unwrap_histogram(stats.node_reads_successful_nanos.get_mut(node_idx));
-                let mut writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
-                match (*writes_locked).remove(&uuid) {
-                    Some(Some(InProgressWrite {
-                        start: write_start,
-                        join_handle,
-                        mut nodes_awaiting_read,
-                    })) => {
-                        log::debug!("In-progress read found for transaction {}", uuid);
-
-                        let node_round_trip = elapsed_nanos(write_start);
-                        log::info!("Round-trip nanos for {}: {}", uuid, node_round_trip);
-                        increment_histogram(
-                            unwrap_histogram(stats.nodes_roundtrip_nanos.get_mut(node_idx)),
-                            node_round_trip,
-                        );
-
-                        if nodes_awaiting_read.remove(&node_idx) {
-                            if nodes_awaiting_read.len() == 0 {
-                                // Last read
-                                log::debug!("Last read for transaction {}", uuid);
-                                increment_histogram(
-                                    &mut stats.global_roundtrip_nanos,
-                                    node_round_trip,
-                                );
-                            } else {
-                                log::debug!(
-                                    "{} reads still pending for transaction {}",
-                                    nodes_awaiting_read.len(),
-                                    uuid
-                                );
-                                (*writes_locked).insert(
-                                    uuid,
-                                    Some(InProgressWrite {
-                                        start: write_start,
-                                        join_handle,
-                                        nodes_awaiting_read,
-                                    }),
-                                );
-                            }
-                        } else {
-                            panic!("Duplicate read {}", uuid);
-                        }
-                    }
-                    _ => panic!("Duplicate read {}", uuid),
-                }
-            }
-            Err(bft_error) => {
-                log::error!("Read failed: {}", bft_error);
-                global_histo = &mut stats.global_reads_failed_nanos;
-                node_histo = unwrap_histogram(stats.node_reads_failed_nanos.get_mut(node_idx));
-            }
-        }
-
-        increment_histogram(global_histo, read_elapsed);
-        increment_histogram(node_histo, read_elapsed);
-    }
-}
-
-async fn stop(
-    in_progress_writes_mutex_arc: Arc<Mutex<HashMap<Uuid, Option<InProgressWrite>>>>,
-    in_progress_reads_mutex: Mutex<Vec<Option<JoinHandle<()>>>>,
-    reads_running_mutex_arc: Arc<Mutex<bool>>,
-    writes_running_mutex_arc: Arc<Mutex<bool>>,
-) -> Result<()> {
-    log::debug!("Switching off reads");
-    *reads_running_mutex_arc.lock().unwrap() = false;
-    log::debug!("Waiting for readers to finish");
-    let mut in_progress_reads_locked = in_progress_reads_mutex.lock().unwrap();
-    for read_join_handle in in_progress_reads_locked.iter_mut() {
-        read_join_handle
-            .take()
-            .expect("Read future already awaited for")
-            .await
-            .unwrap();
-    }
-    log::debug!("Switching off writes");
-    *writes_running_mutex_arc.lock().unwrap() = false;
-    let mut in_progress_writes_locked = in_progress_writes_mutex_arc.lock().unwrap();
-    log::debug!("Waiting for writers to finish");
-    for (_, write_join_handle) in in_progress_writes_locked.iter_mut() {
-        write_join_handle
-            .take()
-            .expect("Write future already awaited for")
-            .join_handle
-            .await
-            .unwrap()?;
-    }
-    Ok(())
+fn request_stop(state: &mut BftBenchmarkState) {
+    log::info!("Signalling workers to stop");
+    state
+        .tx_writers_control
+        .send(WorkerRequest::Stop())
+        .expect("Cannot send writers completion request");
+    state
+        .tx_readers_control
+        .send(WorkerRequest::Stop())
+        .expect("Cannot send readers completion request");
 }
 
 fn unwrap_histogram(histo: Option<&mut Histogram>) -> &mut Histogram {
@@ -527,7 +335,6 @@ fn increment_histogram(histo: &mut Histogram, elapsed_nanos: u64) {
         .expect("Internal error: cannot increment histogram");
 }
 
-fn elapsed_nanos(write_start: Instant) -> u64 {
-    u64::try_from(write_start.elapsed().as_nanos())
-        .expect("Internal error: duration nanos don't fit 64 bits")
+fn u64_nanos(duration: Duration) -> u64 {
+    u64::try_from(duration.as_nanos()).expect("Internal error: duration nanos don't fit 64 bits")
 }

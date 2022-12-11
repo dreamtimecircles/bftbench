@@ -1,4 +1,5 @@
 use std::env::args;
+use std::io::Write;
 
 use anyhow::Result;
 
@@ -9,6 +10,21 @@ use bft_bench_shortcircuited::ShortCircuitedBftBinding;
 async fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .target(env_logger::Target::Stdout)
+        .format(|buf, record| {
+            let ts = buf.timestamp_micros();
+            writeln!(
+                buf,
+                "[{} {} {:?} {} {}:{}] {}",
+                ts,
+                buf.default_level_style(record.level())
+                    .value(record.level()),
+                std::thread::current().id(),
+                record.target(),
+                record.file().unwrap_or("<unknown>"),
+                record.line().unwrap_or(0),
+                record.args()
+            )
+        })
         .init();
 
     let settings = config::Config::builder()
