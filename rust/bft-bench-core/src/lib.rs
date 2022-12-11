@@ -26,13 +26,19 @@ const UUID_SIZE: usize = 16;
 const CONTROL_CHANNELS_BUFFER: usize = 1;
 const DATA_CHANNELS_BUFFER: usize = 1024 * 1024;
 
-struct InProgressWrite {
-    write_start: Instant,
-    nodes_awaiting_read: HashSet<usize>,
+enum WriteStatus {
+    Written {
+        write_start: Instant,
+        nodes_awaiting_read: HashSet<usize>,
+    },
+    ReadWhenWriteDataAvailable {
+        read_completion_instant: Instant,
+        node_idx: usize,
+    },
 }
 
 struct BftBenchmarkState {
-    in_progress_writes: HashMap<Uuid, Option<InProgressWrite>>,
+    in_progress_writes: HashMap<Uuid, WriteStatus>,
     tx_writers_control: broadcast::Sender<WorkerRequest>,
     rx_incoming_writes: mpsc::Receiver<WriterReply>,
     tx_readers_control: broadcast::Sender<WorkerRequest>,
@@ -47,7 +53,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
     let (tx_incoming_reads, rx_incoming_reads) = mpsc::channel(DATA_CHANNELS_BUFFER);
 
     let mut state = BftBenchmarkState {
-        in_progress_writes: HashMap::<Uuid, Option<InProgressWrite>>::new(),
+        in_progress_writes: HashMap::<Uuid, WriteStatus>::new(),
         tx_writers_control,
         rx_incoming_writes,
         tx_readers_control,
@@ -81,7 +87,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
     let read_indices = start_reads::<B>(&accesses, rx_readers_control, tx_incoming_reads);
     let mut readers_to_go = read_indices.clone();
 
-    log::info!("Read indices: {:?}", read_indices);
+    log::info!("Read nodes: {:?}", read_indices);
 
     start_writes::<B>(
         config.transaction_size - UUID_SIZE - 1,
@@ -107,147 +113,202 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
 
     loop {
         tokio::select! {
-            write = state.rx_incoming_writes.recv() => {
+            Some(write) = state.rx_incoming_writes.recv() => {
                 match write {
-                    Some(write) => {
-                        match write {
-                            WriterReply::SuccessfulWrite { write_start, write_duration, uuid, node_idx } => {
-                                log::info!("Writer {} succeeded write {}", node_idx, uuid);
-                                let write_duration_nanos = u64_nanos(write_duration);
-                                increment_histogram(&mut state.stats.global_writes_successful_nanos, write_duration_nanos);
-                                increment_histogram(unwrap_histogram(
-                                    state.stats.node_writes_successful_nanos.get_mut(node_idx),
-                                ), write_duration_nanos);
-                                state.in_progress_writes.insert(
-                                    uuid,
-                                    Some(InProgressWrite {
-                                        write_start,
-                                        nodes_awaiting_read: read_indices.clone(),
-                                    })
-                                );
-                                log::info!(
-                                    "In-progress writes count after Writer {} spawned write {}: {}",
+                    WriterReply::SuccessfulWrite { write_start, write_duration, uuid, node_idx } => {
+                        log::debug!("Writer {} succeeded write {}", node_idx, uuid);
+                        let write_duration_nanos = u64_nanos(write_duration);
+                        increment_histogram(&mut state.stats.global_writes_successful_nanos, write_duration_nanos);
+                        increment_histogram(unwrap_histogram(
+                            state.stats.node_writes_successful_nanos.get_mut(node_idx),
+                        ), write_duration_nanos);
+                        match state.in_progress_writes.remove(&uuid) {
+                            Some(WriteStatus::ReadWhenWriteDataAvailable { read_completion_instant, node_idx }) => {
+                                let node_round_trip_nanos = u64_nanos(read_completion_instant - write_start);
+
+                                log::debug!(
+                                    "Writer {} completed in-progress transaction {} in {} nanos",
                                     node_idx,
                                     uuid,
-                                    state.in_progress_writes.len()
+                                    node_round_trip_nanos
                                 );
-                            },
-                            WriterReply::FailedWrite { write_duration, uuid, node_idx } => {
-                                log::error!("Writer {} failed write {}", node_idx, uuid);
-                                let write_duration_nanos = u64_nanos(write_duration);
-                                increment_histogram(&mut state.stats.global_writes_failed_nanos, write_duration_nanos);
-                                increment_histogram(unwrap_histogram(
-                                    state.stats.node_writes_failed_nanos.get_mut(node_idx),
-                                ), write_duration_nanos);
-                            },
-                            WriterReply::Completed { node_idx } => {
-                                log::info!("Writer {} completed", node_idx);
-                                writers_to_go.remove(&node_idx);
-                                if writers_to_go.is_empty() && readers_to_go.is_empty() {
-                                    break;
-                                }
-                            },
-                        };
-                    },
-                    None => log::info!("All writers closed the sender"),
-                }
-            }
-            read = state.rx_incoming_reads.recv() => {
-                match read {
-                    Some(read) => {
-                        match read {
-                            ReaderReply::SuccessfulRead { read_duration, uuid, node_idx } => {
-                                let read_duration_nanos = u64_nanos(read_duration);
-                                increment_histogram(&mut state.stats.global_reads_successful_nanos, read_duration_nanos);
-                                increment_histogram(unwrap_histogram(
-                                    state.stats.node_reads_successful_nanos.get_mut(node_idx),
-                                ), read_duration_nanos);
-                                match state.in_progress_writes.remove(&uuid) {
-                                    Some(Some(InProgressWrite {
-                                        write_start,
-                                        mut nodes_awaiting_read,
-                                    })) => {
-                                        let node_round_trip_nanos = u64_nanos(write_start.elapsed());
 
-                                        log::info!(
-                                            "Reader {}: in-progress transaction {} completed in {} nanos",
+                                increment_histogram(
+                                    unwrap_histogram(state.stats.nodes_roundtrip_nanos.get_mut(node_idx)),
+                                    node_round_trip_nanos,
+                                );
+
+                                let mut nodes_awaiting_read = read_indices.clone();
+                                if nodes_awaiting_read.remove(&node_idx) {
+                                    if nodes_awaiting_read.len() == 0 {
+                                        // Last read
+                                        log::debug!(
+                                            "Writer {} matched last read for transaction {}",
                                             node_idx,
-                                            uuid,
-                                            node_round_trip_nanos
+                                            uuid
                                         );
-
                                         increment_histogram(
-                                            unwrap_histogram(state.stats.nodes_roundtrip_nanos.get_mut(node_idx)),
+                                            &mut state.stats.global_roundtrip_nanos,
                                             node_round_trip_nanos,
                                         );
-
-                                        if nodes_awaiting_read.remove(&node_idx) {
-                                            if nodes_awaiting_read.len() == 0 {
-                                                // Last read
-                                                log::info!(
-                                                    "Reader {}: last read for transaction {}",
-                                                    node_idx,
-                                                    uuid
-                                                );
-                                                increment_histogram(
-                                                    &mut state.stats.global_roundtrip_nanos,
-                                                    node_round_trip_nanos,
-                                                );
-                                            } else {
-                                                log::info!(
-                                                    "Reader {}: {} reads still pending for transaction {}",
-                                                    node_idx,
-                                                    nodes_awaiting_read.len(),
-                                                    uuid
-                                                );
-                                                state.in_progress_writes.insert(
-                                                    uuid,
-                                                    Some(InProgressWrite {
-                                                        write_start,
-                                                        nodes_awaiting_read,
-                                                    }),
-                                                );
-                                            }
-                                        } else {
-                                            log::error!("Reader {}: duplicate read {}", node_idx, uuid);
-                                            panic!("Reader {}: duplicate read {}", node_idx, uuid);
-                                        }
+                                    } else {
+                                        log::debug!(
+                                            "After match from writer {}, {} reads still pending for transaction {}",
+                                            node_idx,
+                                            nodes_awaiting_read.len(),
+                                            uuid
+                                        );
+                                        state.in_progress_writes.insert(
+                                            uuid,
+                                            WriteStatus::Written {
+                                                write_start,
+                                                nodes_awaiting_read,
+                                            },
+                                        );
                                     }
-                                    _ => {
-                                        log::error!("Reader {}: duplicate read {}", node_idx, uuid);
-                                        panic!("Reader {}: duplicate read {}", node_idx, uuid)
-                                    }
+                                } else {
+                                    log::error!("Writer {} attempted read from non-read node {}", node_idx, uuid);
+                                    panic!("Writer {} attempted read from non-read node {}", node_idx, uuid);
                                 }
-                                log::info!(
-                                    "Reader {}: in-progress writes count after {} read completed: {}",
-                                    node_idx,
+                            },
+                            Some(WriteStatus::Written { .. } ) => {
+                                log::error!("Writer {} trying to perform a duplicate write {}", node_idx, uuid);
+                                panic!("Writer {} trying to perform a duplicate write {}", node_idx, uuid);
+                            },
+                            None => {
+                                state.in_progress_writes.insert(
                                     uuid,
-                                    state.in_progress_writes.len()
+                                    WriteStatus::Written {
+                                        write_start,
+                                        nodes_awaiting_read: read_indices.clone(),
+                                    },
                                 );
                             },
+                        }
+                    },
+                    WriterReply::FailedWrite { write_duration, uuid, node_idx } => {
+                        log::error!("Writer {} failed write {}", node_idx, uuid);
+                        let write_duration_nanos = u64_nanos(write_duration);
+                        increment_histogram(&mut state.stats.global_writes_failed_nanos, write_duration_nanos);
+                        increment_histogram(unwrap_histogram(
+                            state.stats.node_writes_failed_nanos.get_mut(node_idx),
+                        ), write_duration_nanos);
+                    },
+                    WriterReply::Completed { node_idx } => {
+                        log::info!("Writer {} completed", node_idx);
+                        writers_to_go.remove(&node_idx);
+                        log::info!("Writers to go: {:?}", writers_to_go);
+                        log::info!("Readers to go: {:?}", readers_to_go);
+                        if writers_to_go.is_empty() && readers_to_go.is_empty() {
+                            break;
+                        }
+                    },
+                }
+            }
+            Some(read) = state.rx_incoming_reads.recv() => {
+                match read {
+                    ReaderReply::SuccessfulRead { read_completion_instant, read_duration, uuid, node_idx } => {
+                        log::debug!("Reader {} succeeded read {}", node_idx, uuid);
+                        let read_duration_nanos = u64_nanos(read_duration);
+                        increment_histogram(&mut state.stats.global_reads_successful_nanos, read_duration_nanos);
+                        increment_histogram(unwrap_histogram(
+                            state.stats.node_reads_successful_nanos.get_mut(node_idx),
+                        ), read_duration_nanos);
+                        match state.in_progress_writes.remove(&uuid) {
+                            Some(WriteStatus::Written {
+                                write_start,
+                                mut nodes_awaiting_read,
+                            }) => {
+                                let node_round_trip_nanos = u64_nanos(write_start.elapsed());
 
-                            ReaderReply::FailedRead { read_duration, bft_error, node_idx } => {
-                                log::error!("Reader {} failed read: {}", node_idx, bft_error);
-                                let read_duration_nanos = u64_nanos(read_duration);
-                                increment_histogram(&mut state.stats.global_reads_failed_nanos, read_duration_nanos);
-                                increment_histogram(unwrap_histogram(
-                                    state.stats.node_reads_failed_nanos.get_mut(node_idx),
-                                ), read_duration_nanos);
-                            },
-                            ReaderReply::Completed { node_idx } => {
-                                log::info!("Reader {} completed", node_idx);
-                                readers_to_go.remove(&node_idx);
-                                if writers_to_go.is_empty() && readers_to_go.is_empty() {
-                                    break;
+                                log::debug!(
+                                    "Reader {} completed in-progress transaction {} in {} nanos",
+                                    node_idx,
+                                    uuid,
+                                    node_round_trip_nanos
+                                );
+
+                                increment_histogram(
+                                    unwrap_histogram(state.stats.nodes_roundtrip_nanos.get_mut(node_idx)),
+                                    node_round_trip_nanos,
+                                );
+
+                                if nodes_awaiting_read.remove(&node_idx) {
+                                    if nodes_awaiting_read.len() == 0 {
+                                        // Last read
+                                        log::debug!(
+                                            "Reader {} performed last read for transaction {}",
+                                            node_idx,
+                                            uuid
+                                        );
+                                        increment_histogram(
+                                            &mut state.stats.global_roundtrip_nanos,
+                                            node_round_trip_nanos,
+                                        );
+                                    } else {
+                                        log::debug!(
+                                            "After read from reader {}, {} reads still pending for transaction {}",
+                                            node_idx,
+                                            nodes_awaiting_read.len(),
+                                            uuid
+                                        );
+                                        state.in_progress_writes.insert(
+                                            uuid,
+                                            WriteStatus::Written {
+                                                write_start,
+                                                nodes_awaiting_read,
+                                            },
+                                        );
+                                    }
+                                } else {
+                                    log::error!("Duplicate read {} from reader {}: ", uuid, node_idx);
+                                    panic!("Duplicate read {} from reader {}: ", uuid, node_idx);
                                 }
                             },
-                        };
+
+                            Some(WriteStatus::ReadWhenWriteDataAvailable { .. }) => {
+                                log::error!("Duplicate read {} from reader {}: ", uuid, node_idx);
+                                panic!("Duplicate read {} from reader {}: ", uuid, node_idx);
+                            }
+
+                            None => {
+                                log::debug!("Reader {} found that write data for {} is not yet available", node_idx, uuid);
+                                state.in_progress_writes.insert(
+                                    uuid,
+                                    WriteStatus::ReadWhenWriteDataAvailable {
+                                        read_completion_instant,
+                                        node_idx,
+                                    }
+                                );
+                            },
+                        }
+                        log::debug!(
+                            "In-progress writes count after Reader {} read {}: {}",
+                            node_idx,
+                            uuid,
+                            state.in_progress_writes.len()
+                        );
                     },
-                    None =>  log::info!("All readers closed the sender"),
+
+                    ReaderReply::FailedRead { read_duration, bft_error, node_idx } => {
+                        log::error!("Reader {} failed read, error: {}", node_idx, bft_error);
+                        let read_duration_nanos = u64_nanos(read_duration);
+                        increment_histogram(&mut state.stats.global_reads_failed_nanos, read_duration_nanos);
+                        increment_histogram(unwrap_histogram(
+                            state.stats.node_reads_failed_nanos.get_mut(node_idx),
+                        ), read_duration_nanos);
+                    },
+
+                    ReaderReply::Completed { node_idx } => {
+                        log::info!("Reader {} completed", node_idx);
+                        readers_to_go.remove(&node_idx);
+                        if writers_to_go.is_empty() && readers_to_go.is_empty() {
+                            break;
+                        }
+                    },
                 }
-                ()
             }
-            _ = rx_complete.recv() => {
+            Some(()) = rx_complete.recv() => {
                 log::info!("Benchmark duration elapsed, requesting readers' and writers' completion");
                 request_stop(&mut state);
             }
@@ -297,6 +358,7 @@ fn start_reads<B: BftBinding + 'static>(
     for (node_idx, access) in accesses.iter() {
         match access {
             NodeAccess::ReadWriteAccess { writer: _, reader } => {
+                log::info!("Starting reader for node {}", node_idx);
                 read_indices.insert(*node_idx);
                 let reader = reader.clone();
                 spawn(reader::read::<B::Reader>(
@@ -308,7 +370,6 @@ fn start_reads<B: BftBinding + 'static>(
             }
             _ => (),
         }
-        log::info!("start_reads: state unlocked");
     }
     read_indices
 }

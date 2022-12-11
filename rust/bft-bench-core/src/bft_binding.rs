@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
-use uuid::Uuid;
 use bytes::Bytes;
+use uuid::Uuid;
 
 use {crate::config::*, crate::result::*};
 

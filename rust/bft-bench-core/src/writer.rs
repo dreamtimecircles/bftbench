@@ -38,7 +38,7 @@ pub(crate) async fn write<W: BftWriter + 'static>(
 ) {
     loop {
         if let Ok(WorkerRequest::Stop()) = rx_writers_control.try_recv() {
-            log::info!("Writer {}: ending", node_idx);
+            log::debug!("Writer {}: ending", node_idx);
             tx_incoming_writes
                 .send(WriterReply::Completed { node_idx })
                 .await
@@ -50,13 +50,13 @@ pub(crate) async fn write<W: BftWriter + 'static>(
         let mut writer = writer.clone();
         let tx_incoming_writers = tx_incoming_writes.clone();
         spawn(async move {
-            log::info!("Writer {}: starting write {}", node_idx, uuid);
+            log::debug!("Writer {}: starting write {}", node_idx, uuid);
             let write_start = Instant::now();
             let result = writer.write(uuid, create_value(value_size)).await;
             let write_duration = write_start.elapsed();
             match result {
                 Ok(()) => {
-                    log::info!("Writer {}: write {} successful", node_idx, uuid);
+                    log::debug!("Writer {}: write {} successful", node_idx, uuid);
                     tx_incoming_writers
                         .send(WriterReply::SuccessfulWrite {
                             write_start,
@@ -68,7 +68,7 @@ pub(crate) async fn write<W: BftWriter + 'static>(
                         .expect("Receiver closed");
                 }
                 Err(ref bft_error) => {
-                    log::info!("Writer {}: write {} failed: {}", node_idx, uuid, bft_error);
+                    log::error!("Writer {}: write {} failed: {}", node_idx, uuid, bft_error);
                     tx_incoming_writers
                         .send(WriterReply::FailedWrite {
                             write_duration,
@@ -81,7 +81,7 @@ pub(crate) async fn write<W: BftWriter + 'static>(
             };
             result
         });
-        log::info!("Writer {}: waiting for next schedule", node_idx);
+        log::debug!("Writer {}: waiting for next schedule", node_idx);
         tokio::time::sleep(write_interval).await;
     }
 }
