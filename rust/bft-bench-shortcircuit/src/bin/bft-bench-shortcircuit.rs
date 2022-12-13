@@ -41,8 +41,7 @@ async fn main() -> Result<()> {
     let settings = config::Config::builder()
         .add_source(config::File::from(cli.config))
         .add_source(config::Environment::with_prefix("BENCH"))
-        .build()
-        .unwrap();
+        .build()?;
 
     let config = settings.try_deserialize::<Config>()?;
 
