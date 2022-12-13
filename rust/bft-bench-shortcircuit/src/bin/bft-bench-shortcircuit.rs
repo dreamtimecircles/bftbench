@@ -4,7 +4,7 @@ use std::io::Write;
 use anyhow::Result;
 
 use bft_bench_core::{BftBinding, Config};
-use bft_bench_shortcircuited::ShortCircuitedBftBinding;
+use bft_bench_shortcircuit::ShortCircuitedBftBinding;
 
 #[tokio::main]
 async fn main() -> Result<()> {

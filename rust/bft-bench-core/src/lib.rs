@@ -379,11 +379,11 @@ fn request_stop(state: &mut BftBenchmarkState) {
     state
         .tx_writers_control
         .send(WorkerRequest::Stop())
-        .expect("Cannot send writers completion request");
+        .expect("Internal error: cannot send writers completion request");
     state
         .tx_readers_control
         .send(WorkerRequest::Stop())
-        .expect("Cannot send readers completion request");
+        .expect("Internal error: cannot send readers completion request");
 }
 
 fn unwrap_histogram(histo: Option<&mut Histogram>) -> &mut Histogram {
