@@ -3,8 +3,17 @@ use std::io::Write;
 
 use anyhow::Result;
 
+use clap::Parser;
+
 use bft_bench_core::{BftBinding, Config};
 use bft_bench_shortcircuit::ShortCircuitedBftBinding;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long, value_name = "FILE.toml")]
+    config: std::path::PathBuf,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -27,8 +36,10 @@ async fn main() -> Result<()> {
         })
         .init();
 
+    let cli = Cli::parse();
+
     let settings = config::Config::builder()
-        .add_source(config::File::with_name("Benchmark.toml"))
+        .add_source(config::File::from(cli.config))
         .add_source(config::Environment::with_prefix("BENCH"))
         .build()
         .unwrap();
