@@ -1,0 +1,19 @@
+transaction_size=100
+
+[run_duration]
+secs=5
+nanos=0
+
+[write_interval]
+secs=1
+nanos=0
+
+[[nodes]]
+[nodes.ReadWrite.node.endpoint]
+host = "localhost"
+port = 4000
+
+[[nodes]]
+[nodes.Write.endpoint]
+host = "localhost"
+port = 4000

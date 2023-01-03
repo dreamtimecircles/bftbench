@@ -1,0 +1,2 @@
+[workspace]
+members = ["bft-bench-core", "bft-bench-shortcircuit"]
