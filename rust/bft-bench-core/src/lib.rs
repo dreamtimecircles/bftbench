@@ -15,8 +15,9 @@ pub mod bft_binding;
 pub mod config;
 pub mod result;
 pub mod stats;
-pub use {bft_binding::*, config::*, result::*, stats::*};
+pub use {bft_binding::*, config::*, result::*};
 
+use stats::*;
 mod reader;
 mod worker;
 mod writer;
@@ -43,10 +44,13 @@ struct BftBenchmarkState {
     rx_incoming_writes: mpsc::Receiver<WriterReply>,
     tx_readers_control: broadcast::Sender<WorkerRequest>,
     rx_incoming_reads: mpsc::Receiver<ReaderReply>,
-    stats: Stats,
+    stats: Histograms,
 }
 
-pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) -> Result<Stats> {
+pub async fn run<B: BftBinding + 'static>(
+    config: Config,
+    mut bft_binding: B,
+) -> Result<Stats> {
     let (tx_writers_control, rx_writers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
     let (tx_incoming_writes, rx_incoming_writes) = mpsc::channel(DATA_CHANNELS_BUFFER);
     let (tx_readers_control, rx_readers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
@@ -58,7 +62,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         rx_incoming_writes,
         tx_readers_control,
         rx_incoming_reads,
-        stats: Stats::new(
+        stats: Histograms::new(
             config.nodes.len(),
             config
                 .nodes
@@ -118,10 +122,8 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                     WriterReply::SuccessfulWrite { write_start, write_duration, uuid, node_idx } => {
                         log::debug!("Writer {} succeeded write {}", node_idx, uuid);
                         let write_duration_nanos = u64_nanos(write_duration);
-                        increment_histogram(&mut state.stats.global_writes_successful_nanos, write_duration_nanos);
-                        increment_histogram(unwrap_histogram(
-                            state.stats.node_writes_successful_nanos.get_mut(node_idx),
-                        ), write_duration_nanos);
+                        increment_histogram(&mut state.stats.global_write_histograms.successful_nanos, write_duration_nanos);
+                        increment_histogram(&mut state.stats.nodes_write_histograms.get_mut(node_idx).unwrap().successful_nanos, write_duration_nanos);
                         match state.in_progress_writes.remove(&uuid) {
                             Some(WriteStatus::ReadWhenWriteDataAvailable { read_completion_instant, node_idx }) => {
                                 let node_round_trip_nanos = u64_nanos(read_completion_instant - write_start);
@@ -134,7 +136,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                                 );
 
                                 increment_histogram(
-                                    unwrap_histogram(state.stats.nodes_roundtrip_nanos.get_mut(node_idx)),
+                                    &mut state.stats.nodes_read_histograms.get_mut(node_idx).unwrap().roundtrip_nanos,
                                     node_round_trip_nanos,
                                 );
 
@@ -148,7 +150,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                                             uuid
                                         );
                                         increment_histogram(
-                                            &mut state.stats.global_roundtrip_nanos,
+                                            &mut state.stats.global_read_histograms.roundtrip_nanos,
                                             node_round_trip_nanos,
                                         );
                                     } else {
@@ -189,10 +191,9 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                     WriterReply::FailedWrite { write_duration, uuid, node_idx } => {
                         log::error!("Writer {} failed write {}", node_idx, uuid);
                         let write_duration_nanos = u64_nanos(write_duration);
-                        increment_histogram(&mut state.stats.global_writes_failed_nanos, write_duration_nanos);
-                        increment_histogram(unwrap_histogram(
-                            state.stats.node_writes_failed_nanos.get_mut(node_idx),
-                        ), write_duration_nanos);
+                        increment_histogram(&mut state.stats.global_write_histograms.failed_nanos, write_duration_nanos);
+                        increment_histogram(
+                            &mut state.stats.nodes_write_histograms.get_mut(node_idx).unwrap().failed_nanos, write_duration_nanos);
                     },
                     WriterReply::Completed { node_idx } => {
                         log::info!("Writer {} completed", node_idx);
@@ -210,10 +211,8 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                     ReaderReply::SuccessfulRead { read_completion_instant, read_duration, uuid, node_idx } => {
                         log::debug!("Reader {} succeeded read {}", node_idx, uuid);
                         let read_duration_nanos = u64_nanos(read_duration);
-                        increment_histogram(&mut state.stats.global_reads_successful_nanos, read_duration_nanos);
-                        increment_histogram(unwrap_histogram(
-                            state.stats.node_reads_successful_nanos.get_mut(node_idx),
-                        ), read_duration_nanos);
+                        increment_histogram(&mut state.stats.global_read_histograms.successful_nanos, read_duration_nanos);
+                        increment_histogram(&mut state.stats.nodes_read_histograms.get_mut(node_idx).unwrap().successful_nanos, read_duration_nanos);
                         match state.in_progress_writes.remove(&uuid) {
                             Some(WriteStatus::Written {
                                 write_start,
@@ -229,7 +228,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                                 );
 
                                 increment_histogram(
-                                    unwrap_histogram(state.stats.nodes_roundtrip_nanos.get_mut(node_idx)),
+                                    &mut state.stats.nodes_read_histograms.get_mut(node_idx).unwrap().roundtrip_nanos,
                                     node_round_trip_nanos,
                                 );
 
@@ -242,7 +241,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                                             uuid
                                         );
                                         increment_histogram(
-                                            &mut state.stats.global_roundtrip_nanos,
+                                            &mut state.stats.global_read_histograms.roundtrip_nanos,
                                             node_round_trip_nanos,
                                         );
                                     } else {
@@ -293,10 +292,8 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                     ReaderReply::FailedRead { read_duration, bft_error, node_idx } => {
                         log::error!("Reader {} failed read, error: {}", node_idx, bft_error);
                         let read_duration_nanos = u64_nanos(read_duration);
-                        increment_histogram(&mut state.stats.global_reads_failed_nanos, read_duration_nanos);
-                        increment_histogram(unwrap_histogram(
-                            state.stats.node_reads_failed_nanos.get_mut(node_idx),
-                        ), read_duration_nanos);
+                        increment_histogram(&mut state.stats.global_read_histograms.failed_nanos, read_duration_nanos);
+                        increment_histogram(&mut state.stats.nodes_read_histograms.get_mut(node_idx).unwrap().failed_nanos, read_duration_nanos);
                     },
 
                     ReaderReply::Completed { node_idx } => {
@@ -315,7 +312,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         }
     }
 
-    Ok(state.stats)
+    Ok(state.stats.into())
 }
 
 fn start_writes<B: BftBinding + 'static>(
@@ -384,10 +381,6 @@ fn request_stop(state: &mut BftBenchmarkState) {
         .tx_readers_control
         .send(WorkerRequest::Stop())
         .expect("Internal error: cannot send readers completion request");
-}
-
-fn unwrap_histogram(histo: Option<&mut Histogram>) -> &mut Histogram {
-    histo.expect("Internal error: not enough histograms created")
 }
 
 fn increment_histogram(histo: &mut Histogram, elapsed_nanos: u64) {
