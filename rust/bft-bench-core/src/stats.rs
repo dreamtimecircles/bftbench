@@ -67,6 +67,7 @@ pub struct ReadStats {
     roundtrip_nanos_avg: Result<u64, &'static str>,
 }
 
+/// The stats currently produced.
 #[derive(Serialize)]
 pub struct Stats {
     global_write_stats: WriteStats,
