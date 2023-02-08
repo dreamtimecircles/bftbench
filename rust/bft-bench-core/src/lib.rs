@@ -1,3 +1,5 @@
+//! A BFT library and platform benchmarking framework.
+
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
@@ -47,6 +49,7 @@ struct BftBenchmarkState {
     stats: Histograms,
 }
 
+/// Runs a benchmark using the given [`BftBinding`] and [`Config`] and produces [`Stats`].
 pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) -> Result<Stats> {
     let (tx_writers_control, rx_writers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
     let (tx_incoming_writes, rx_incoming_writes) = mpsc::channel(DATA_CHANNELS_BUFFER);
