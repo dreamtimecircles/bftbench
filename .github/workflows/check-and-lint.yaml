@@ -19,10 +19,10 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - run: cd rust
       - uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --manifest-path rust
 
   fmt:
     name: Rustfmt
@@ -35,11 +35,10 @@ jobs:
           toolchain: stable
           override: true
       - run: rustup component add rustfmt
-      - run: cd rust
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: --manifest-path rust --all -- --check
 
   clippy:
     name: Clippy
@@ -51,9 +50,8 @@ jobs:
           toolchain: stable
           components: clippy
           override: true
-      - run: cd rust
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+          args: --all-features --manifest-path rust
           name: Clippy Output
