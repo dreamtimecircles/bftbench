@@ -22,7 +22,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path rust
+          args: --manifest-path rust/Cargo.toml
 
   fmt:
     name: Rustfmt
@@ -38,7 +38,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --manifest-path rust --all -- --check
+          args: --manifest-path rust/Cargo.toml --all -- --check
 
   clippy:
     name: Clippy
@@ -53,5 +53,5 @@ jobs:
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --manifest-path rust
+          args: --all-features --manifest-path rust/Cargo.toml
           name: Clippy Output
