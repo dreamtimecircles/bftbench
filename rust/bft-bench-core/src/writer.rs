@@ -92,3 +92,13 @@ fn create_value(value_size: usize) -> Bytes {
     log::debug!("Random value of size {} generated", value_size);
     Bytes::from(value)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_value() {
+        assert_eq!(create_value(2).len(), 2)
+    }
+}

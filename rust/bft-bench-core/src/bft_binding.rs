@@ -31,7 +31,7 @@ pub trait BftWriter: Send + Clone {
 /// A [`BftWriter`] allows to read a key from a node. A BFT library/platform is expected to
 /// provide BFT ordering functionality, i.e., all nodes should provide a consistent ordering
 /// of written data to all readers, including when byzantine nodes are present.
-/// 
+///
 /// BFT properties can vary but most private-network BFT protocols guarantee consistent
 /// ordering when at least `2f + 1` nodes are honest, where `f` is the maximum number
 /// of dishonest nodes.

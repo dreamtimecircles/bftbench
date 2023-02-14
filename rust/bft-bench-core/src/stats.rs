@@ -84,43 +84,40 @@ impl From<Histograms> for Stats {
                     .global_write_histograms
                     .successful_nanos
                     .mean(),
-                writes_failed_nanos_avg: histograms
-                    .global_write_histograms
-                    .failed_nanos
-                    .mean(),
+                writes_failed_nanos_avg: histograms.global_write_histograms.failed_nanos.mean(),
             },
             global_read_stats: ReadStats {
                 read_successful_nanos_avg: histograms
                     .global_read_histograms
                     .successful_nanos
                     .mean(),
-                read_failed_nanos_avg: histograms
-                    .global_read_histograms
-                    .failed_nanos
-                    .mean(),
-                roundtrip_nanos_avg: histograms
-                    .global_read_histograms
-                    .roundtrip_nanos
-                    .mean(),
+                read_failed_nanos_avg: histograms.global_read_histograms.failed_nanos.mean(),
+                roundtrip_nanos_avg: histograms.global_read_histograms.roundtrip_nanos.mean(),
             },
             nodes_write_stats: vec![],
             nodes_read_stats: vec![],
         };
-        histograms.nodes_write_histograms.into_iter().for_each(|write_histograms| {
-            let write_stats = WriteStats {
-                writes_successful_nanos_avg: write_histograms.successful_nanos.mean(),
-                writes_failed_nanos_avg: write_histograms.failed_nanos.mean(),
-            };
-            stats.nodes_write_stats.push(write_stats);
-        });
-        histograms.nodes_read_histograms.into_iter().for_each(|read_histograms| {
-            let read_stats = ReadStats {
-                read_successful_nanos_avg: read_histograms.successful_nanos.mean(),
-                read_failed_nanos_avg: read_histograms.failed_nanos.mean(),
-                roundtrip_nanos_avg: read_histograms.roundtrip_nanos.mean(),
-            };
-            stats.nodes_read_stats.push(read_stats);
-        });
+        histograms
+            .nodes_write_histograms
+            .into_iter()
+            .for_each(|write_histograms| {
+                let write_stats = WriteStats {
+                    writes_successful_nanos_avg: write_histograms.successful_nanos.mean(),
+                    writes_failed_nanos_avg: write_histograms.failed_nanos.mean(),
+                };
+                stats.nodes_write_stats.push(write_stats);
+            });
+        histograms
+            .nodes_read_histograms
+            .into_iter()
+            .for_each(|read_histograms| {
+                let read_stats = ReadStats {
+                    read_successful_nanos_avg: read_histograms.successful_nanos.mean(),
+                    read_failed_nanos_avg: read_histograms.failed_nanos.mean(),
+                    roundtrip_nanos_avg: read_histograms.roundtrip_nanos.mean(),
+                };
+                stats.nodes_read_stats.push(read_stats);
+            });
         stats
     }
 }
