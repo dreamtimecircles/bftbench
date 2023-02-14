@@ -57,5 +57,5 @@ jobs:
         with:
           # required for private repositories:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: .rust/lcov.info
+          files: rust/.rust/lcov.info
           fail_ci_if_error: true
