@@ -10,6 +10,7 @@ jobs:
   test:
     name: Test
     env:
+      PROJECT_NAME_UNDERSCORE: bft_bench
       CARGO_INCREMENTAL: 0
       RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
       RUSTDOCFLAGS: -Cpanic=abort
@@ -43,7 +44,7 @@ jobs:
           cargo install cargo2junit grcov
           cd rust
           cargo test $CARGO_OPTIONS -- -Z unstable-options --format json | cargo2junit > results.xml
-          zip -0 ccov.zip `find . \( -name "bft_bench*.gc*" \) -print`
+          zip -0 ccov.zip `find . \( -name "$PROJECT_NAME_UNDERSCORE*.gc*" \) -print`
           grcov ccov.zip -s . -t lcov --llvm --ignore-not-existing --ignore "/*" --ignore "tests/*" -o lcov.info
       - name: Upload test results
         uses: EnricoMi/publish-unit-test-result-action@v1
