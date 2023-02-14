@@ -93,6 +93,7 @@ fn create_value(value_size: usize) -> Bytes {
     Bytes::from(value)
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
