@@ -6,5 +6,7 @@ mkShell {
   buildInputs = [
     git
     python310Packages.mdformat
+    zlib
+    zip
   ];
 }
