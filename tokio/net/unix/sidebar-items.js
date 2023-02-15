@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["OwnedReadHalf","OwnedWriteHalf","ReadHalf","ReuniteError","SocketAddr","UCred","WriteHalf"],"type":["gid_t","pid_t","uid_t"]};
