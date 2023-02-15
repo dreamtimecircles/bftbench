@@ -67,10 +67,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
             config
                 .nodes
                 .iter()
-                .filter(|node| match **node {
-                    Node::ReadWrite(_) => true,
-                    _ => false,
-                })
+                .filter(|node| matches!(**node, Node::ReadWrite(_)))
                 .collect::<Vec<_>>()
                 .len(),
         ),
@@ -388,7 +385,7 @@ fn complete_read(
     );
 
     if nodes_awaiting_read.remove(&node_idx) {
-        if nodes_awaiting_read.len() == 0 {
+        if nodes_awaiting_read.is_empty() {
             // Last read
             log::debug!(
                 "{} {} performed last read for transaction {}",
@@ -460,19 +457,16 @@ fn start_reads<B: BftBinding + 'static>(
     log::info!("Starting readers");
     let mut read_indices = HashSet::<usize>::new();
     for (node_idx, access) in accesses.iter() {
-        match access {
-            NodeAccess::ReadWriteAccess { writer: _, reader } => {
-                log::info!("Starting reader for node {}", node_idx);
-                read_indices.insert(*node_idx);
-                let reader = reader.clone();
-                spawn(reader::read::<B::Reader>(
-                    *node_idx,
-                    reader,
-                    rx_readers_control.resubscribe(),
-                    tx_incoming_reads.clone(),
-                ));
-            }
-            _ => (),
+        if let NodeAccess::ReadWriteAccess { writer: _, reader } = access {
+            log::info!("Starting reader for node {}", node_idx);
+            read_indices.insert(*node_idx);
+            let reader = reader.clone();
+            spawn(reader::read::<B::Reader>(
+                *node_idx,
+                reader,
+                rx_readers_control.resubscribe(),
+                tx_incoming_reads.clone(),
+            ));
         }
     }
     read_indices
