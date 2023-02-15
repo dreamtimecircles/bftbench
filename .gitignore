@@ -10,3 +10,8 @@ Cargo.lock
 **/*.rs.bk
 
 .vscode/
+
+# Coverage artifacts
+ccov.zip
+lcov.info
+results.xml
