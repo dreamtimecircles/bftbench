@@ -981,7 +981,7 @@
 
 <span class="kw">fn </span>increment_histogram(histo: <span class="kw-2">&amp;mut </span>Histogram, elapsed_nanos: u64) {
     histo
-        .increment(elapsed_nanos)
+        .increment(elapsed_nanos, <span class="number">1</span>)
         .expect(<span class="string">&quot;Internal error: cannot increment histogram&quot;</span>);
 }
 

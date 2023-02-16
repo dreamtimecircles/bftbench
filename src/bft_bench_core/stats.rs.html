@@ -128,27 +128,34 @@
 <a href="#128" id="128">128</a>
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::fmt::Display;
 
 <span class="kw">use </span>histogram::Histogram;
 <span class="kw">use </span>serde_derive::Serialize;
 
-<span class="attr">#[derive(Debug, Clone)]
+<span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WriteHistograms {
     <span class="kw">pub</span>(<span class="kw">crate</span>) successful_nanos: Histogram,
     <span class="kw">pub</span>(<span class="kw">crate</span>) failed_nanos: Histogram,
 }
 
+<span class="kw">fn </span>new_default_histogram() -&gt; Histogram {
+    Histogram::builder().build().unwrap()
+}
+
 <span class="kw">impl </span>WriteHistograms {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
         WriteHistograms {
-            successful_nanos: Histogram::new(),
-            failed_nanos: Histogram::new(),
+            successful_nanos: new_default_histogram(),
+            failed_nanos: new_default_histogram(),
         }
     }
 }
 
-<span class="attr">#[derive(Debug, Clone)]
+<span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ReadHistograms {
     <span class="kw">pub</span>(<span class="kw">crate</span>) successful_nanos: Histogram,
     <span class="kw">pub</span>(<span class="kw">crate</span>) failed_nanos: Histogram,
@@ -158,15 +165,14 @@
 <span class="kw">impl </span>ReadHistograms {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
         ReadHistograms {
-            successful_nanos: Histogram::new(),
-            failed_nanos: Histogram::new(),
-            roundtrip_nanos: Histogram::new(),
+            successful_nanos: new_default_histogram(),
+            failed_nanos: new_default_histogram(),
+            roundtrip_nanos: new_default_histogram(),
         }
     }
 }
 
-<span class="attr">#[derive(Debug)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Histograms {
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Histograms {
     <span class="kw">pub</span>(<span class="kw">crate</span>) global_write_histograms: WriteHistograms,
     <span class="kw">pub</span>(<span class="kw">crate</span>) global_read_histograms: ReadHistograms,
     <span class="kw">pub</span>(<span class="kw">crate</span>) nodes_write_histograms: Vec&lt;WriteHistograms&gt;,
@@ -186,15 +192,15 @@
 
 <span class="attr">#[derive(Serialize)]
 </span><span class="kw">pub struct </span>WriteStats {
-    writes_successful_nanos_avg: <span class="prelude-ty">Result</span>&lt;u64, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
-    writes_failed_nanos_avg: <span class="prelude-ty">Result</span>&lt;u64, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
+    writes_successful_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+    writes_failed_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
 }
 
 <span class="attr">#[derive(Serialize)]
 </span><span class="kw">pub struct </span>ReadStats {
-    read_successful_nanos_avg: <span class="prelude-ty">Result</span>&lt;u64, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
-    read_failed_nanos_avg: <span class="prelude-ty">Result</span>&lt;u64, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
-    roundtrip_nanos_avg: <span class="prelude-ty">Result</span>&lt;u64, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
+    read_successful_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+    read_failed_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+    roundtrip_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
 }
 
 <span class="doccomment">/// The stats currently produced.
@@ -210,19 +216,15 @@
     <span class="kw">fn </span>from(histograms: Histograms) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>stats = Stats {
             global_write_stats: WriteStats {
-                writes_successful_nanos_avg: histograms
-                    .global_write_histograms
-                    .successful_nanos
-                    .mean(),
-                writes_failed_nanos_avg: histograms.global_write_histograms.failed_nanos.mean(),
+                writes_successful_nanos_avg: mean(
+                    histograms.global_write_histograms.successful_nanos,
+                ),
+                writes_failed_nanos_avg: mean(histograms.global_write_histograms.failed_nanos),
             },
             global_read_stats: ReadStats {
-                read_successful_nanos_avg: histograms
-                    .global_read_histograms
-                    .successful_nanos
-                    .mean(),
-                read_failed_nanos_avg: histograms.global_read_histograms.failed_nanos.mean(),
-                roundtrip_nanos_avg: histograms.global_read_histograms.roundtrip_nanos.mean(),
+                read_successful_nanos_avg: mean(histograms.global_read_histograms.successful_nanos),
+                read_failed_nanos_avg: mean(histograms.global_read_histograms.failed_nanos),
+                roundtrip_nanos_avg: mean(histograms.global_read_histograms.roundtrip_nanos),
             },
             nodes_write_stats: <span class="macro">vec!</span>[],
             nodes_read_stats: <span class="macro">vec!</span>[],
@@ -232,8 +234,8 @@
             .into_iter()
             .for_each(|write_histograms| {
                 <span class="kw">let </span>write_stats = WriteStats {
-                    writes_successful_nanos_avg: write_histograms.successful_nanos.mean(),
-                    writes_failed_nanos_avg: write_histograms.failed_nanos.mean(),
+                    writes_successful_nanos_avg: mean(write_histograms.successful_nanos),
+                    writes_failed_nanos_avg: mean(write_histograms.failed_nanos),
                 };
                 stats.nodes_write_stats.push(write_stats);
             });
@@ -242,14 +244,18 @@
             .into_iter()
             .for_each(|read_histograms| {
                 <span class="kw">let </span>read_stats = ReadStats {
-                    read_successful_nanos_avg: read_histograms.successful_nanos.mean(),
-                    read_failed_nanos_avg: read_histograms.failed_nanos.mean(),
-                    roundtrip_nanos_avg: read_histograms.roundtrip_nanos.mean(),
+                    read_successful_nanos_avg: mean(read_histograms.successful_nanos),
+                    read_failed_nanos_avg: mean(read_histograms.failed_nanos),
+                    roundtrip_nanos_avg: mean(read_histograms.roundtrip_nanos),
                 };
                 stats.nodes_read_stats.push(read_stats);
             });
         stats
     }
+}
+
+<span class="kw">fn </span>mean(histogram: Histogram) -&gt; <span class="prelude-ty">Option</span>&lt;u64&gt; {
+    histogram.percentile(<span class="number">50.0</span>).map(|bucket| bucket.high()).ok()
 }
 
 <span class="kw">impl </span>Display <span class="kw">for </span>Stats {
