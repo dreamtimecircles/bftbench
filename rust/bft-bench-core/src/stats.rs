@@ -3,22 +3,26 @@ use std::fmt::Display;
 use histogram::Histogram;
 use serde_derive::Serialize;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct WriteHistograms {
     pub(crate) successful_nanos: Histogram,
     pub(crate) failed_nanos: Histogram,
 }
 
+fn new_default_histogram() -> Histogram {
+    Histogram::builder().build().unwrap()
+}
+
 impl WriteHistograms {
     pub(crate) fn new() -> Self {
         WriteHistograms {
-            successful_nanos: Histogram::new(),
-            failed_nanos: Histogram::new(),
+            successful_nanos: new_default_histogram(),
+            failed_nanos: new_default_histogram(),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct ReadHistograms {
     pub(crate) successful_nanos: Histogram,
     pub(crate) failed_nanos: Histogram,
@@ -28,14 +32,13 @@ pub(crate) struct ReadHistograms {
 impl ReadHistograms {
     pub(crate) fn new() -> Self {
         ReadHistograms {
-            successful_nanos: Histogram::new(),
-            failed_nanos: Histogram::new(),
-            roundtrip_nanos: Histogram::new(),
+            successful_nanos: new_default_histogram(),
+            failed_nanos: new_default_histogram(),
+            roundtrip_nanos: new_default_histogram(),
         }
     }
 }
 
-#[derive(Debug)]
 pub(crate) struct Histograms {
     pub(crate) global_write_histograms: WriteHistograms,
     pub(crate) global_read_histograms: ReadHistograms,
@@ -56,15 +59,15 @@ impl Histograms {
 
 #[derive(Serialize)]
 pub struct WriteStats {
-    writes_successful_nanos_avg: Result<u64, &'static str>,
-    writes_failed_nanos_avg: Result<u64, &'static str>,
+    writes_successful_nanos_avg: Option<u64>,
+    writes_failed_nanos_avg: Option<u64>,
 }
 
 #[derive(Serialize)]
 pub struct ReadStats {
-    read_successful_nanos_avg: Result<u64, &'static str>,
-    read_failed_nanos_avg: Result<u64, &'static str>,
-    roundtrip_nanos_avg: Result<u64, &'static str>,
+    read_successful_nanos_avg: Option<u64>,
+    read_failed_nanos_avg: Option<u64>,
+    roundtrip_nanos_avg: Option<u64>,
 }
 
 /// The stats currently produced.
@@ -80,19 +83,15 @@ impl From<Histograms> for Stats {
     fn from(histograms: Histograms) -> Self {
         let mut stats = Stats {
             global_write_stats: WriteStats {
-                writes_successful_nanos_avg: histograms
-                    .global_write_histograms
-                    .successful_nanos
-                    .mean(),
-                writes_failed_nanos_avg: histograms.global_write_histograms.failed_nanos.mean(),
+                writes_successful_nanos_avg: mean(
+                    histograms.global_write_histograms.successful_nanos,
+                ),
+                writes_failed_nanos_avg: mean(histograms.global_write_histograms.failed_nanos),
             },
             global_read_stats: ReadStats {
-                read_successful_nanos_avg: histograms
-                    .global_read_histograms
-                    .successful_nanos
-                    .mean(),
-                read_failed_nanos_avg: histograms.global_read_histograms.failed_nanos.mean(),
-                roundtrip_nanos_avg: histograms.global_read_histograms.roundtrip_nanos.mean(),
+                read_successful_nanos_avg: mean(histograms.global_read_histograms.successful_nanos),
+                read_failed_nanos_avg: mean(histograms.global_read_histograms.failed_nanos),
+                roundtrip_nanos_avg: mean(histograms.global_read_histograms.roundtrip_nanos),
             },
             nodes_write_stats: vec![],
             nodes_read_stats: vec![],
@@ -102,8 +101,8 @@ impl From<Histograms> for Stats {
             .into_iter()
             .for_each(|write_histograms| {
                 let write_stats = WriteStats {
-                    writes_successful_nanos_avg: write_histograms.successful_nanos.mean(),
-                    writes_failed_nanos_avg: write_histograms.failed_nanos.mean(),
+                    writes_successful_nanos_avg: mean(write_histograms.successful_nanos),
+                    writes_failed_nanos_avg: mean(write_histograms.failed_nanos),
                 };
                 stats.nodes_write_stats.push(write_stats);
             });
@@ -112,14 +111,18 @@ impl From<Histograms> for Stats {
             .into_iter()
             .for_each(|read_histograms| {
                 let read_stats = ReadStats {
-                    read_successful_nanos_avg: read_histograms.successful_nanos.mean(),
-                    read_failed_nanos_avg: read_histograms.failed_nanos.mean(),
-                    roundtrip_nanos_avg: read_histograms.roundtrip_nanos.mean(),
+                    read_successful_nanos_avg: mean(read_histograms.successful_nanos),
+                    read_failed_nanos_avg: mean(read_histograms.failed_nanos),
+                    roundtrip_nanos_avg: mean(read_histograms.roundtrip_nanos),
                 };
                 stats.nodes_read_stats.push(read_stats);
             });
         stats
     }
+}
+
+fn mean(histogram: Histogram) -> Option<u64> {
+    histogram.percentile(50.0).map(|bucket| bucket.high()).ok()
 }
 
 impl Display for Stats {
