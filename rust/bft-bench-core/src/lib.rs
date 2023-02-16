@@ -486,7 +486,7 @@ fn request_stop(state: &mut BftBenchmarkState) {
 
 fn increment_histogram(histo: &mut Histogram, elapsed_nanos: u64) {
     histo
-        .increment(elapsed_nanos)
+        .increment(elapsed_nanos, 1)
         .expect("Internal error: cannot increment histogram");
 }
 
