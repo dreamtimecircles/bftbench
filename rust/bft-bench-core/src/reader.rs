@@ -5,8 +5,6 @@ use uuid::Uuid;
 
 use crate::{worker::WorkerRequest, BftError, BftReader};
 
-const READ_TIMEOUT: Duration = Duration::from_secs(1);
-
 #[derive(Debug)]
 pub(crate) enum ReaderReply {
     SuccessfulRead {
@@ -30,11 +28,12 @@ pub(crate) async fn read<R: BftReader + 'static>(
     mut reader: R,
     mut rx_readers_control: broadcast::Receiver<WorkerRequest>,
     tx_incoming_reads: mpsc::Sender<ReaderReply>,
+    read_grace: Duration,
 ) {
     loop {
         let read_start = Instant::now();
         log::debug!("Reader {}: reading", node_idx);
-        match tokio::time::timeout(READ_TIMEOUT, reader.read()).await {
+        match tokio::time::timeout(read_grace, reader.read()).await {
             Ok(read_result) => {
                 let read_completion_instant = Instant::now();
                 let read_duration = read_start.elapsed();

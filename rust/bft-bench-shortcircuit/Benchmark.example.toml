@@ -12,7 +12,11 @@ nanos=0
 secs=0
 nanos=2500
 
+[read_grace]
+secs=30
+nanos=0
+
 [[nodes]]
 [nodes.ReadWrite.node.endpoint]
-host = "localhost"
-port = 4000
+host = "localhost" # Unused
+port = 4000 # Unused
