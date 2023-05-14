@@ -44,14 +44,17 @@ impl BftBinding for EchoBftBinding {
 
     type Reader = Reader;
 
-    fn new(_: &Config) -> Self {
+    fn new(config: &Config) -> Self {
+        if config.nodes.len() != 1 {
+            unsupported();
+        }
         EchoBftBinding {}
     }
 
     async fn access(&mut self, node: Node) -> NodeAccess<Self::Writer, Self::Reader> {
         match node {
             Node::Write(WriteNode { endpoint: _ }) => {
-                panic!("Only one read-write node is supported")
+                unsupported();
             }
             Node::ReadWrite(ReadWriteNode {
                 node: WriteNode { endpoint },
@@ -116,4 +119,8 @@ impl BftReader for Reader {
             ))),
         }
     }
+}
+
+fn unsupported() -> ! {
+    panic!("Only one read-write node is supported")
 }
