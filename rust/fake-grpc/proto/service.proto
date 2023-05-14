@@ -4,7 +4,7 @@ package grpc.fake;
 
 service Service {
   rpc Write(stream Tx) returns (Bye) {}
-  rpc Read(Subscription) returns (Batch) {}
+  rpc Read(Subscription) returns (stream Batch) {}
 }
 
 message Tx {
