@@ -305,8 +305,8 @@
     <span class="kw">pub </span>nanos_99: <span class="prelude-ty">Option</span>&lt;u64&gt;,
 }
 
-<span class="kw">impl </span>From&lt;Stat&gt; <span class="kw">for </span>Report {
-    <span class="kw">fn </span>from(stat: Stat) -&gt; <span class="self">Self </span>{
+<span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>Stat&gt; <span class="kw">for </span>Report {
+    <span class="kw">fn </span>from(stat: <span class="kw-2">&amp;</span>Stat) -&gt; <span class="self">Self </span>{
         Report {
             count: stat.counter.count,
             rate_s: <span class="kw">if </span>stat.counter.count == <span class="number">0 </span>{
@@ -334,11 +334,11 @@
     <span class="kw">pub </span>failed: Report,
 }
 
-<span class="kw">impl </span>From&lt;OpStat&gt; <span class="kw">for </span>OpReport {
-    <span class="kw">fn </span>from(write_stat: OpStat) -&gt; <span class="self">Self </span>{
+<span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>OpStat&gt; <span class="kw">for </span>OpReport {
+    <span class="kw">fn </span>from(write_stat: <span class="kw-2">&amp;</span>OpStat) -&gt; <span class="self">Self </span>{
         OpReport {
-            successful: write_stat.successful.into(),
-            failed: write_stat.failed.into(),
+            successful: (<span class="kw-2">&amp;</span>write_stat.successful).into(),
+            failed: (<span class="kw-2">&amp;</span>write_stat.failed).into(),
         }
     }
 }
@@ -349,11 +349,11 @@
     <span class="kw">pub </span>round_trip: Report,
 }
 
-<span class="kw">impl </span>From&lt;ReadStat&gt; <span class="kw">for </span>ReadReport {
-    <span class="kw">fn </span>from(read_stat: ReadStat) -&gt; <span class="self">Self </span>{
+<span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>ReadStat&gt; <span class="kw">for </span>ReadReport {
+    <span class="kw">fn </span>from(read_stat: <span class="kw-2">&amp;</span>ReadStat) -&gt; <span class="self">Self </span>{
         ReadReport {
-            op: read_stat.op.into(),
-            round_trip: read_stat.round_trip.into(),
+            op: (<span class="kw-2">&amp;</span>read_stat.op).into(),
+            round_trip: (<span class="kw-2">&amp;</span>read_stat.round_trip).into(),
         }
     }
 }
@@ -372,13 +372,13 @@
     <span class="kw">pub </span>nodes_reads: Vec&lt;WithNodeIndex&lt;ReadReport&gt;&gt;,
 }
 
-<span class="kw">impl </span>From&lt;Stats&gt; <span class="kw">for </span>Reports {
-    <span class="kw">fn </span>from(stats: Stats) -&gt; <span class="self">Self </span>{
+<span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>Stats&gt; <span class="kw">for </span>Reports {
+    <span class="kw">fn </span>from(stats: <span class="kw-2">&amp;</span>Stats) -&gt; <span class="self">Self </span>{
         Reports {
-            global_write: stats.global_write.into(),
-            global_read: stats.global_read.into(),
-            nodes_writes: into_reports(stats.nodes_writes),
-            nodes_reads: into_reports(stats.nodes_reads),
+            global_write: (<span class="kw-2">&amp;</span>stats.global_write).into(),
+            global_read: (<span class="kw-2">&amp;</span>stats.global_read).into(),
+            nodes_writes: into_reports(stats.nodes_writes.iter().collect()),
+            nodes_reads: into_reports(stats.nodes_reads.iter().collect()),
         }
     }
 }
