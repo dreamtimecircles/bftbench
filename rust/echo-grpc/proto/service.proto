@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package grpc.echo;
+
+service Service {
+  rpc Echo(stream Tx) returns (stream Tx) {}
+}
+
+message Tx {
+  bytes tx_id = 1;
+  bytes value = 2;
+}
