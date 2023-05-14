@@ -17,9 +17,11 @@ pub mod bft_binding;
 pub mod config;
 pub mod result;
 pub mod stats;
+
 pub use {bft_binding::*, config::*, result::*};
 
 use stats::*;
+
 mod reader;
 mod worker;
 mod writer;
@@ -46,11 +48,11 @@ struct BftBenchmarkState {
     rx_incoming_writes: mpsc::Receiver<WriterReply>,
     tx_readers_control: broadcast::Sender<WorkerRequest>,
     rx_incoming_reads: mpsc::Receiver<ReaderReply>,
-    stats: Histograms,
+    stats: Stats,
 }
 
 /// Runs a benchmark using the given [`BftBinding`] and [`Config`] and produces [`Stats`].
-pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) -> Result<Stats> {
+pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) -> Result<Reports> {
     let (tx_writers_control, rx_writers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
     let (tx_incoming_writes, rx_incoming_writes) = mpsc::channel(DATA_CHANNELS_BUFFER);
     let (tx_readers_control, rx_readers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
@@ -62,7 +64,8 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         rx_incoming_writes,
         tx_readers_control,
         rx_incoming_reads,
-        stats: Histograms::new(
+        stats: Stats::new(
+            Instant::now(),
             config.nodes.len(),
             config
                 .nodes
@@ -134,6 +137,59 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
     Ok(state.stats.into())
 }
 
+fn start_writes<B: BftBinding + 'static>(
+    value_size: usize,
+    accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
+    write_interval: Duration,
+    rx_writers_control: broadcast::Receiver<WorkerRequest>,
+    tx_incoming_writes: mpsc::Sender<WriterReply>,
+) {
+    log::info!("Starting writers");
+    for (node_idx, writer) in accesses.iter().map(|(node_idx, access)| {
+        (
+            node_idx,
+            match access {
+                NodeAccess::ReadWriteAccess { writer, reader: _ } => writer,
+                NodeAccess::WriteOnlyAccess { writer } => writer,
+            },
+        )
+    }) {
+        log::info!("Starting writer for node {}", node_idx);
+        let writer = writer.clone();
+        spawn(writer::write::<B::Writer>(
+            value_size,
+            writer,
+            *node_idx,
+            write_interval,
+            rx_writers_control.resubscribe(),
+            tx_incoming_writes.clone(),
+        ));
+    }
+}
+
+fn start_reads<B: BftBinding + 'static>(
+    accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
+    rx_readers_control: broadcast::Receiver<WorkerRequest>,
+    tx_incoming_reads: mpsc::Sender<ReaderReply>,
+) -> HashSet<usize> {
+    log::info!("Starting readers");
+    let mut read_indices = HashSet::<usize>::new();
+    for (node_idx, access) in accesses.iter() {
+        if let NodeAccess::ReadWriteAccess { writer: _, reader } = access {
+            log::info!("Starting reader for node {}", node_idx);
+            read_indices.insert(*node_idx);
+            let reader = reader.clone();
+            spawn(reader::read::<B::Reader>(
+                *node_idx,
+                reader,
+                rx_readers_control.resubscribe(),
+                tx_incoming_reads.clone(),
+            ));
+        }
+    }
+    read_indices
+}
+
 fn handle_writer_reply(
     state: &mut BftBenchmarkState,
     writers_to_go: &mut HashSet<usize>,
@@ -150,18 +206,11 @@ fn handle_writer_reply(
         } => {
             log::debug!("Writer {} succeeded write {}", node_idx, uuid);
             let write_duration_nanos = u64_nanos(write_duration);
-            increment_histogram(
-                &mut state.stats.global_write_histograms.successful_nanos,
+            update_op_stat(
+                &mut state.stats.global_write,
+                state.stats.nodes_writes.get_mut(node_idx).unwrap(),
                 write_duration_nanos,
-            );
-            increment_histogram(
-                &mut state
-                    .stats
-                    .nodes_write_histograms
-                    .get_mut(node_idx)
-                    .unwrap()
-                    .successful_nanos,
-                write_duration_nanos,
+                true,
             );
             match state.in_progress_writes.remove(&uuid) {
                 Some(WriteStatus::ReadWhenWriteDataAvailable {
@@ -218,18 +267,11 @@ fn handle_writer_reply(
         } => {
             log::error!("Writer {} failed write {}", node_idx, uuid);
             let write_duration_nanos = u64_nanos(write_duration);
-            increment_histogram(
-                &mut state.stats.global_write_histograms.failed_nanos,
+            update_op_stat(
+                &mut state.stats.global_write,
+                state.stats.nodes_writes.get_mut(node_idx).unwrap(),
                 write_duration_nanos,
-            );
-            increment_histogram(
-                &mut state
-                    .stats
-                    .nodes_write_histograms
-                    .get_mut(node_idx)
-                    .unwrap()
-                    .failed_nanos,
-                write_duration_nanos,
+                false,
             );
         }
         WriterReply::Completed { node_idx } => {
@@ -261,18 +303,11 @@ fn handle_reader_reply(
         } => {
             log::debug!("Reader {} succeeded read {}", node_idx, uuid);
             let read_duration_nanos = u64_nanos(read_duration);
-            increment_histogram(
-                &mut state.stats.global_read_histograms.successful_nanos,
+            update_op_stat(
+                &mut state.stats.global_read.op,
+                &mut state.stats.nodes_reads.get_mut(node_idx).unwrap().op,
                 read_duration_nanos,
-            );
-            increment_histogram(
-                &mut state
-                    .stats
-                    .nodes_read_histograms
-                    .get_mut(node_idx)
-                    .unwrap()
-                    .successful_nanos,
-                read_duration_nanos,
+                true,
             );
             match state.in_progress_writes.remove(&uuid) {
                 Some(WriteStatus::Written {
@@ -328,18 +363,11 @@ fn handle_reader_reply(
         } => {
             log::error!("Reader {} failed read, error: {}", node_idx, bft_error);
             let read_duration_nanos = u64_nanos(read_duration);
-            increment_histogram(
-                &mut state.stats.global_read_histograms.failed_nanos,
+            update_op_stat(
+                &mut state.stats.global_read.op,
+                &mut state.stats.nodes_reads.get_mut(node_idx).unwrap().op,
                 read_duration_nanos,
-            );
-            increment_histogram(
-                &mut state
-                    .stats
-                    .nodes_read_histograms
-                    .get_mut(node_idx)
-                    .unwrap()
-                    .failed_nanos,
-                read_duration_nanos,
+                false,
             );
         }
 
@@ -374,17 +402,18 @@ fn complete_read(
         node_round_trip_nanos
     );
 
-    increment_histogram(
-        &mut state
-            .stats
-            .nodes_read_histograms
-            .get_mut(node_idx)
-            .unwrap()
-            .roundtrip_nanos,
-        node_round_trip_nanos,
-    );
-
     if nodes_awaiting_read.remove(&node_idx) {
+        let now = Instant::now();
+        update_stat(
+            &mut state
+                .stats
+                .nodes_reads
+                .get_mut(node_idx)
+                .unwrap()
+                .round_trip,
+            now,
+            node_round_trip_nanos,
+        );
         if nodes_awaiting_read.is_empty() {
             // Last read
             log::debug!(
@@ -393,8 +422,9 @@ fn complete_read(
                 node_idx,
                 uuid
             );
-            increment_histogram(
-                &mut state.stats.global_read_histograms.roundtrip_nanos,
+            update_stat(
+                &mut state.stats.global_read.round_trip,
+                now,
                 node_round_trip_nanos,
             );
         } else {
@@ -419,59 +449,6 @@ fn complete_read(
     }
 }
 
-fn start_writes<B: BftBinding + 'static>(
-    value_size: usize,
-    accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
-    write_interval: Duration,
-    rx_writers_control: broadcast::Receiver<WorkerRequest>,
-    tx_incoming_writes: mpsc::Sender<WriterReply>,
-) {
-    log::info!("Starting writers");
-    for (node_idx, writer) in accesses.iter().map(|(node_idx, access)| {
-        (
-            node_idx,
-            match access {
-                NodeAccess::ReadWriteAccess { writer, reader: _ } => writer,
-                NodeAccess::WriteOnlyAccess { writer } => writer,
-            },
-        )
-    }) {
-        log::info!("Starting writer for node {}", node_idx);
-        let writer = writer.clone();
-        spawn(writer::write::<B::Writer>(
-            value_size,
-            writer,
-            *node_idx,
-            write_interval,
-            rx_writers_control.resubscribe(),
-            tx_incoming_writes.clone(),
-        ));
-    }
-}
-
-fn start_reads<B: BftBinding + 'static>(
-    accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
-    rx_readers_control: broadcast::Receiver<WorkerRequest>,
-    tx_incoming_reads: mpsc::Sender<ReaderReply>,
-) -> HashSet<usize> {
-    log::info!("Starting readers");
-    let mut read_indices = HashSet::<usize>::new();
-    for (node_idx, access) in accesses.iter() {
-        if let NodeAccess::ReadWriteAccess { writer: _, reader } = access {
-            log::info!("Starting reader for node {}", node_idx);
-            read_indices.insert(*node_idx);
-            let reader = reader.clone();
-            spawn(reader::read::<B::Reader>(
-                *node_idx,
-                reader,
-                rx_readers_control.resubscribe(),
-                tx_incoming_reads.clone(),
-            ));
-        }
-    }
-    read_indices
-}
-
 fn request_stop(state: &mut BftBenchmarkState) {
     log::info!("Signalling workers to stop");
     state
@@ -482,6 +459,28 @@ fn request_stop(state: &mut BftBenchmarkState) {
         .tx_readers_control
         .send(WorkerRequest::Stop())
         .expect("Internal error: cannot send readers completion request");
+}
+
+fn update_op_stat(
+    global_op_stat: &mut OpStat,
+    node_op_stat: &mut OpStat,
+    duration_nanos: u64,
+    ok: bool,
+) {
+    let now = Instant::now();
+    if ok {
+        update_stat(&mut global_op_stat.successful, now, duration_nanos);
+        update_stat(&mut node_op_stat.successful, now, duration_nanos);
+    } else {
+        update_stat(&mut global_op_stat.failed, now, duration_nanos);
+        update_stat(&mut node_op_stat.failed, now, duration_nanos);
+    }
+}
+
+fn update_stat(stat: &mut Stat, now: Instant, duration_nanos: u64) {
+    increment_histogram(&mut stat.histogram, duration_nanos);
+    stat.counter.count += 1;
+    stat.counter.now = now;
 }
 
 fn increment_histogram(histo: &mut Histogram, elapsed_nanos: u64) {
