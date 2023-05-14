@@ -3,24 +3,22 @@
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
-use reader::ReaderReply;
+use histogram::Histogram;
 use tokio::task::spawn;
 use tokio::time::sleep;
 use tokio::{sync::broadcast, sync::mpsc};
 use uuid::Uuid;
 
-use histogram::Histogram;
+use reader::ReaderReply;
+use stats::*;
 use worker::WorkerRequest;
 use writer::WriterReply;
+pub use {bft_binding::*, config::*, result::*};
 
 pub mod bft_binding;
 pub mod config;
 pub mod result;
 pub mod stats;
-
-pub use {bft_binding::*, config::*, result::*};
-
-use stats::*;
 
 mod reader;
 mod worker;
@@ -105,13 +103,25 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         config.run_duration.as_secs_f64()
     );
 
-    let (tx_complete, mut rx_complete) = mpsc::channel(CONTROL_CHANNELS_BUFFER);
+    let (tx_report, mut rx_report) = mpsc::channel(CONTROL_CHANNELS_BUFFER);
+    let tx_report_periodic = tx_report.clone();
     spawn(async move {
         sleep(config.run_duration).await;
-        tx_complete
-            .send(())
+        tx_report
+            .send(true)
             .await
             .expect("Cannot send benchmark completion request");
+    });
+    config.report_interval.map_or((), |i| {
+        spawn(async move {
+            loop {
+                sleep(i).await;
+                if let Err(_) = tx_report_periodic.send(false).await {
+                    log::debug!("Report channel closed, stopping periodic report");
+                    break;
+                }
+            }
+        });
     });
 
     loop {
@@ -126,14 +136,19 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                     break;
                 }
             }
-            Some(()) = rx_complete.recv() => {
-                log::info!("Benchmark duration elapsed, requesting readers' and writers' completion");
-                request_stop(&mut state);
+            Some(complete) = rx_report.recv() => {
+                if complete {
+                    log::info!("Benchmark duration elapsed, requesting readers' and writers' completion");
+                    rx_report.close();
+                    request_stop(&mut state);
+                } else {
+                    log::info!("Periodic stats follow: {}", Into::<Reports>::into(&state.stats));
+                }
             }
         }
     }
 
-    Ok(state.stats.into())
+    Ok((&state.stats).into())
 }
 
 fn start_writes<B: BftBinding + 'static>(
