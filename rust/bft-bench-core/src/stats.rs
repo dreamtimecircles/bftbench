@@ -1,133 +1,205 @@
-use std::fmt::Display;
+use std::ops::Sub;
+use std::{fmt::Display, time::Instant};
 
 use histogram::Histogram;
 use serde_derive::Serialize;
 
 #[derive(Clone)]
-pub(crate) struct WriteHistograms {
-    pub(crate) successful_nanos: Histogram,
-    pub(crate) failed_nanos: Histogram,
+pub(crate) struct Counter {
+    pub(crate) start: Instant,
+    pub(crate) now: Instant,
+    pub(crate) count: u64,
+}
+
+impl Counter {
+    pub(crate) fn new(init: Instant) -> Self {
+        Counter {
+            start: init,
+            now: init,
+            count: 0,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct Stat {
+    pub(crate) histogram: Histogram,
+    pub(crate) counter: Counter,
+}
+
+impl Stat {
+    pub(crate) fn new(init: Instant) -> Self {
+        Stat {
+            histogram: new_default_histogram(),
+            counter: Counter::new(init),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct OpStat {
+    pub(crate) successful: Stat,
+    pub(crate) failed: Stat,
+}
+
+impl OpStat {
+    pub(crate) fn new(init: Instant) -> Self {
+        OpStat {
+            successful: Stat::new(init),
+            failed: Stat::new(init),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct ReadStat {
+    pub(crate) op: OpStat,
+    pub(crate) round_trip: Stat,
+}
+
+impl ReadStat {
+    pub(crate) fn new(init: Instant) -> Self {
+        ReadStat {
+            op: OpStat::new(init),
+            round_trip: Stat::new(init),
+        }
+    }
+}
+
+pub(crate) struct Stats {
+    pub(crate) global_write: OpStat,
+    pub(crate) global_read: ReadStat,
+    pub(crate) nodes_writes: Vec<OpStat>,
+    pub(crate) nodes_reads: Vec<ReadStat>,
+}
+
+impl Stats {
+    pub(crate) fn new(init: Instant, write_nodes: usize, read_nodes: usize) -> Self {
+        Stats {
+            global_write: OpStat::new(init),
+            global_read: ReadStat::new(init),
+            nodes_writes: vec![OpStat::new(init); write_nodes],
+            nodes_reads: vec![ReadStat::new(init); read_nodes],
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct Report {
+    pub count: u64,
+    pub rate_s: Option<u64>,
+    pub nanos_avg: Option<u64>,
+    pub nanos_95: Option<u64>,
+    pub nanos_99: Option<u64>,
+}
+
+impl From<Stat> for Report {
+    fn from(stat: Stat) -> Self {
+        Report {
+            count: stat.counter.count,
+            rate_s: if stat.counter.count == 0 {
+                None
+            } else {
+                Some(
+                    (1.0 / (stat
+                        .counter
+                        .now
+                        .sub(stat.counter.start)
+                        .div_f64(stat.counter.count as f64)
+                        .as_secs_f64())) as u64,
+                )
+            },
+            nanos_avg: mean(&stat.histogram),
+            nanos_95: perc(95.0, &stat.histogram),
+            nanos_99: perc(99.0, &stat.histogram),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct OpReport {
+    pub successful: Report,
+    pub failed: Report,
+}
+
+impl From<OpStat> for OpReport {
+    fn from(write_stat: OpStat) -> Self {
+        OpReport {
+            successful: write_stat.successful.into(),
+            failed: write_stat.failed.into(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ReadReport {
+    pub op: OpReport,
+    pub round_trip: Report,
+}
+
+impl From<ReadStat> for ReadReport {
+    fn from(read_stat: ReadStat) -> Self {
+        ReadReport {
+            op: read_stat.op.into(),
+            round_trip: read_stat.round_trip.into(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct WithNodeIndex<R> {
+    pub node_index: usize,
+    pub report: R,
+}
+
+#[derive(Serialize)]
+pub struct Reports {
+    pub global_write: OpReport,
+    pub global_read: ReadReport,
+    pub nodes_writes: Vec<WithNodeIndex<OpReport>>,
+    pub nodes_reads: Vec<WithNodeIndex<ReadReport>>,
+}
+
+impl From<Stats> for Reports {
+    fn from(stats: Stats) -> Self {
+        Reports {
+            global_write: stats.global_write.into(),
+            global_read: stats.global_read.into(),
+            nodes_writes: into_reports(stats.nodes_writes),
+            nodes_reads: into_reports(stats.nodes_reads),
+        }
+    }
+}
+
+fn into_reports<S, R: From<S>>(stats: Vec<S>) -> Vec<WithNodeIndex<R>> {
+    stats
+        .into_iter()
+        .enumerate()
+        .map(|(pos, x)| WithNodeIndex {
+            node_index: pos,
+            report: x.into(),
+        })
+        .collect()
+}
+
+impl Display for Reports {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let json = serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error)?;
+        write!(f, "{}", json)
+    }
 }
 
 fn new_default_histogram() -> Histogram {
     Histogram::builder().build().unwrap()
 }
 
-impl WriteHistograms {
-    pub(crate) fn new() -> Self {
-        WriteHistograms {
-            successful_nanos: new_default_histogram(),
-            failed_nanos: new_default_histogram(),
-        }
-    }
+fn mean(histogram: &Histogram) -> Option<u64> {
+    perc(50.0, histogram)
 }
 
-#[derive(Clone)]
-pub(crate) struct ReadHistograms {
-    pub(crate) successful_nanos: Histogram,
-    pub(crate) failed_nanos: Histogram,
-    pub(crate) roundtrip_nanos: Histogram,
-}
-
-impl ReadHistograms {
-    pub(crate) fn new() -> Self {
-        ReadHistograms {
-            successful_nanos: new_default_histogram(),
-            failed_nanos: new_default_histogram(),
-            roundtrip_nanos: new_default_histogram(),
-        }
-    }
-}
-
-pub(crate) struct Histograms {
-    pub(crate) global_write_histograms: WriteHistograms,
-    pub(crate) global_read_histograms: ReadHistograms,
-    pub(crate) nodes_write_histograms: Vec<WriteHistograms>,
-    pub(crate) nodes_read_histograms: Vec<ReadHistograms>,
-}
-
-impl Histograms {
-    pub(crate) fn new(nodes_count: usize, read_nodes_count: usize) -> Self {
-        Histograms {
-            global_write_histograms: WriteHistograms::new(),
-            global_read_histograms: ReadHistograms::new(),
-            nodes_write_histograms: vec![WriteHistograms::new(); nodes_count],
-            nodes_read_histograms: vec![ReadHistograms::new(); read_nodes_count],
-        }
-    }
-}
-
-#[derive(Serialize)]
-pub struct WriteStats {
-    writes_successful_nanos_avg: Option<u64>,
-    writes_failed_nanos_avg: Option<u64>,
-}
-
-#[derive(Serialize)]
-pub struct ReadStats {
-    read_successful_nanos_avg: Option<u64>,
-    read_failed_nanos_avg: Option<u64>,
-    roundtrip_nanos_avg: Option<u64>,
-}
-
-/// The stats currently produced.
-#[derive(Serialize)]
-pub struct Stats {
-    global_write_stats: WriteStats,
-    global_read_stats: ReadStats,
-    nodes_write_stats: Vec<WriteStats>,
-    nodes_read_stats: Vec<ReadStats>,
-}
-
-impl From<Histograms> for Stats {
-    fn from(histograms: Histograms) -> Self {
-        let mut stats = Stats {
-            global_write_stats: WriteStats {
-                writes_successful_nanos_avg: mean(
-                    histograms.global_write_histograms.successful_nanos,
-                ),
-                writes_failed_nanos_avg: mean(histograms.global_write_histograms.failed_nanos),
-            },
-            global_read_stats: ReadStats {
-                read_successful_nanos_avg: mean(histograms.global_read_histograms.successful_nanos),
-                read_failed_nanos_avg: mean(histograms.global_read_histograms.failed_nanos),
-                roundtrip_nanos_avg: mean(histograms.global_read_histograms.roundtrip_nanos),
-            },
-            nodes_write_stats: vec![],
-            nodes_read_stats: vec![],
-        };
-        histograms
-            .nodes_write_histograms
-            .into_iter()
-            .for_each(|write_histograms| {
-                let write_stats = WriteStats {
-                    writes_successful_nanos_avg: mean(write_histograms.successful_nanos),
-                    writes_failed_nanos_avg: mean(write_histograms.failed_nanos),
-                };
-                stats.nodes_write_stats.push(write_stats);
-            });
-        histograms
-            .nodes_read_histograms
-            .into_iter()
-            .for_each(|read_histograms| {
-                let read_stats = ReadStats {
-                    read_successful_nanos_avg: mean(read_histograms.successful_nanos),
-                    read_failed_nanos_avg: mean(read_histograms.failed_nanos),
-                    roundtrip_nanos_avg: mean(read_histograms.roundtrip_nanos),
-                };
-                stats.nodes_read_stats.push(read_stats);
-            });
-        stats
-    }
-}
-
-fn mean(histogram: Histogram) -> Option<u64> {
-    histogram.percentile(50.0).map(|bucket| bucket.high()).ok()
-}
-
-impl Display for Stats {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let json = serde_json::to_string(self).map_err(|_| std::fmt::Error)?;
-        write!(f, "{}", json)
-    }
+fn perc(percentile: f64, histogram: &Histogram) -> Option<u64> {
+    histogram
+        .percentile(percentile)
+        .map(|bucket| bucket.high())
+        .ok()
 }
