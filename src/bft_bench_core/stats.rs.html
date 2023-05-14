@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bft-bench-core/src/stats.rs`."><title>stats.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-1def573a4779b29b.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-d59023bfa12059d2.css"><link rel="stylesheet" disabled href="../../static.files/dark-1ca41bb1e10af075.css"><link rel="stylesheet" disabled href="../../static.files/ayu-18b4181a2f3fb862.css"><script src="../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bft_bench_core/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bft-bench-core/src/stats.rs`."><title>stats.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bft_bench_core" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (2c41369ac 2023-05-13)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bft_bench_core/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -131,138 +131,281 @@
 <a href="#131" id="131">131</a>
 <a href="#132" id="132">132</a>
 <a href="#133" id="133">133</a>
-</pre><pre class="rust"><code><span class="kw">use </span>std::fmt::Display;
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::ops::Sub;
+<span class="kw">use </span>std::{fmt::Display, time::Instant};
 
 <span class="kw">use </span>histogram::Histogram;
 <span class="kw">use </span>serde_derive::Serialize;
 
 <span class="attr">#[derive(Clone)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>WriteHistograms {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) successful_nanos: Histogram,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) failed_nanos: Histogram,
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Counter {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) start: Instant,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) now: Instant,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) count: u64,
+}
+
+<span class="kw">impl </span>Counter {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(init: Instant) -&gt; <span class="self">Self </span>{
+        Counter {
+            start: init,
+            now: init,
+            count: <span class="number">0</span>,
+        }
+    }
+}
+
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Stat {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) histogram: Histogram,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) counter: Counter,
+}
+
+<span class="kw">impl </span>Stat {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(init: Instant) -&gt; <span class="self">Self </span>{
+        Stat {
+            histogram: new_default_histogram(),
+            counter: Counter::new(init),
+        }
+    }
+}
+
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>OpStat {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) successful: Stat,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) failed: Stat,
+}
+
+<span class="kw">impl </span>OpStat {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(init: Instant) -&gt; <span class="self">Self </span>{
+        OpStat {
+            successful: Stat::new(init),
+            failed: Stat::new(init),
+        }
+    }
+}
+
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ReadStat {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) op: OpStat,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) round_trip: Stat,
+}
+
+<span class="kw">impl </span>ReadStat {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(init: Instant) -&gt; <span class="self">Self </span>{
+        ReadStat {
+            op: OpStat::new(init),
+            round_trip: Stat::new(init),
+        }
+    }
+}
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Stats {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) global_write: OpStat,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) global_read: ReadStat,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) nodes_writes: Vec&lt;OpStat&gt;,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) nodes_reads: Vec&lt;ReadStat&gt;,
+}
+
+<span class="kw">impl </span>Stats {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(init: Instant, write_nodes: usize, read_nodes: usize) -&gt; <span class="self">Self </span>{
+        Stats {
+            global_write: OpStat::new(init),
+            global_read: ReadStat::new(init),
+            nodes_writes: <span class="macro">vec!</span>[OpStat::new(init); write_nodes],
+            nodes_reads: <span class="macro">vec!</span>[ReadStat::new(init); read_nodes],
+        }
+    }
+}
+
+<span class="attr">#[derive(Serialize)]
+</span><span class="kw">pub struct </span>Report {
+    <span class="kw">pub </span>count: u64,
+    <span class="kw">pub </span>rate_s: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+    <span class="kw">pub </span>nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+    <span class="kw">pub </span>nanos_95: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+    <span class="kw">pub </span>nanos_99: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+}
+
+<span class="kw">impl </span>From&lt;Stat&gt; <span class="kw">for </span>Report {
+    <span class="kw">fn </span>from(stat: Stat) -&gt; <span class="self">Self </span>{
+        Report {
+            count: stat.counter.count,
+            rate_s: <span class="kw">if </span>stat.counter.count == <span class="number">0 </span>{
+                <span class="prelude-val">None
+            </span>} <span class="kw">else </span>{
+                <span class="prelude-val">Some</span>(
+                    (<span class="number">1.0 </span>/ (stat
+                        .counter
+                        .now
+                        .sub(stat.counter.start)
+                        .div_f64(stat.counter.count <span class="kw">as </span>f64)
+                        .as_secs_f64())) <span class="kw">as </span>u64,
+                )
+            },
+            nanos_avg: mean(<span class="kw-2">&amp;</span>stat.histogram),
+            nanos_95: perc(<span class="number">95.0</span>, <span class="kw-2">&amp;</span>stat.histogram),
+            nanos_99: perc(<span class="number">99.0</span>, <span class="kw-2">&amp;</span>stat.histogram),
+        }
+    }
+}
+
+<span class="attr">#[derive(Serialize)]
+</span><span class="kw">pub struct </span>OpReport {
+    <span class="kw">pub </span>successful: Report,
+    <span class="kw">pub </span>failed: Report,
+}
+
+<span class="kw">impl </span>From&lt;OpStat&gt; <span class="kw">for </span>OpReport {
+    <span class="kw">fn </span>from(write_stat: OpStat) -&gt; <span class="self">Self </span>{
+        OpReport {
+            successful: write_stat.successful.into(),
+            failed: write_stat.failed.into(),
+        }
+    }
+}
+
+<span class="attr">#[derive(Serialize)]
+</span><span class="kw">pub struct </span>ReadReport {
+    <span class="kw">pub </span>op: OpReport,
+    <span class="kw">pub </span>round_trip: Report,
+}
+
+<span class="kw">impl </span>From&lt;ReadStat&gt; <span class="kw">for </span>ReadReport {
+    <span class="kw">fn </span>from(read_stat: ReadStat) -&gt; <span class="self">Self </span>{
+        ReadReport {
+            op: read_stat.op.into(),
+            round_trip: read_stat.round_trip.into(),
+        }
+    }
+}
+
+<span class="attr">#[derive(Serialize)]
+</span><span class="kw">pub struct </span>WithNodeIndex&lt;R&gt; {
+    <span class="kw">pub </span>node_index: usize,
+    <span class="kw">pub </span>report: R,
+}
+
+<span class="attr">#[derive(Serialize)]
+</span><span class="kw">pub struct </span>Reports {
+    <span class="kw">pub </span>global_write: OpReport,
+    <span class="kw">pub </span>global_read: ReadReport,
+    <span class="kw">pub </span>nodes_writes: Vec&lt;WithNodeIndex&lt;OpReport&gt;&gt;,
+    <span class="kw">pub </span>nodes_reads: Vec&lt;WithNodeIndex&lt;ReadReport&gt;&gt;,
+}
+
+<span class="kw">impl </span>From&lt;Stats&gt; <span class="kw">for </span>Reports {
+    <span class="kw">fn </span>from(stats: Stats) -&gt; <span class="self">Self </span>{
+        Reports {
+            global_write: stats.global_write.into(),
+            global_read: stats.global_read.into(),
+            nodes_writes: into_reports(stats.nodes_writes),
+            nodes_reads: into_reports(stats.nodes_reads),
+        }
+    }
+}
+
+<span class="kw">fn </span>into_reports&lt;S, R: From&lt;S&gt;&gt;(stats: Vec&lt;S&gt;) -&gt; Vec&lt;WithNodeIndex&lt;R&gt;&gt; {
+    stats
+        .into_iter()
+        .enumerate()
+        .map(|(pos, x)| WithNodeIndex {
+            node_index: pos,
+            report: x.into(),
+        })
+        .collect()
+}
+
+<span class="kw">impl </span>Display <span class="kw">for </span>Reports {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+        <span class="kw">let </span>json = serde_json::to_string_pretty(<span class="self">self</span>).map_err(|<span class="kw">_</span>| std::fmt::Error)<span class="question-mark">?</span>;
+        <span class="macro">write!</span>(f, <span class="string">&quot;{}&quot;</span>, json)
+    }
 }
 
 <span class="kw">fn </span>new_default_histogram() -&gt; Histogram {
     Histogram::builder().build().unwrap()
 }
 
-<span class="kw">impl </span>WriteHistograms {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
-        WriteHistograms {
-            successful_nanos: new_default_histogram(),
-            failed_nanos: new_default_histogram(),
-        }
-    }
+<span class="kw">fn </span>mean(histogram: <span class="kw-2">&amp;</span>Histogram) -&gt; <span class="prelude-ty">Option</span>&lt;u64&gt; {
+    perc(<span class="number">50.0</span>, histogram)
 }
 
-<span class="attr">#[derive(Clone)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ReadHistograms {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) successful_nanos: Histogram,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) failed_nanos: Histogram,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) roundtrip_nanos: Histogram,
+<span class="kw">fn </span>perc(percentile: f64, histogram: <span class="kw-2">&amp;</span>Histogram) -&gt; <span class="prelude-ty">Option</span>&lt;u64&gt; {
+    histogram
+        .percentile(percentile)
+        .map(|bucket| bucket.high())
+        .ok()
 }
-
-<span class="kw">impl </span>ReadHistograms {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
-        ReadHistograms {
-            successful_nanos: new_default_histogram(),
-            failed_nanos: new_default_histogram(),
-            roundtrip_nanos: new_default_histogram(),
-        }
-    }
-}
-
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Histograms {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) global_write_histograms: WriteHistograms,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) global_read_histograms: ReadHistograms,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) nodes_write_histograms: Vec&lt;WriteHistograms&gt;,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) nodes_read_histograms: Vec&lt;ReadHistograms&gt;,
-}
-
-<span class="kw">impl </span>Histograms {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(nodes_count: usize, read_nodes_count: usize) -&gt; <span class="self">Self </span>{
-        Histograms {
-            global_write_histograms: WriteHistograms::new(),
-            global_read_histograms: ReadHistograms::new(),
-            nodes_write_histograms: <span class="macro">vec!</span>[WriteHistograms::new(); nodes_count],
-            nodes_read_histograms: <span class="macro">vec!</span>[ReadHistograms::new(); read_nodes_count],
-        }
-    }
-}
-
-<span class="attr">#[derive(Serialize)]
-</span><span class="kw">pub struct </span>WriteStats {
-    writes_successful_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
-    writes_failed_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
-}
-
-<span class="attr">#[derive(Serialize)]
-</span><span class="kw">pub struct </span>ReadStats {
-    read_successful_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
-    read_failed_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
-    roundtrip_nanos_avg: <span class="prelude-ty">Option</span>&lt;u64&gt;,
-}
-
-<span class="doccomment">/// The stats currently produced.
-</span><span class="attr">#[derive(Serialize)]
-</span><span class="kw">pub struct </span>Stats {
-    global_write_stats: WriteStats,
-    global_read_stats: ReadStats,
-    nodes_write_stats: Vec&lt;WriteStats&gt;,
-    nodes_read_stats: Vec&lt;ReadStats&gt;,
-}
-
-<span class="kw">impl </span>From&lt;Histograms&gt; <span class="kw">for </span>Stats {
-    <span class="kw">fn </span>from(histograms: Histograms) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span><span class="kw-2">mut </span>stats = Stats {
-            global_write_stats: WriteStats {
-                writes_successful_nanos_avg: mean(
-                    histograms.global_write_histograms.successful_nanos,
-                ),
-                writes_failed_nanos_avg: mean(histograms.global_write_histograms.failed_nanos),
-            },
-            global_read_stats: ReadStats {
-                read_successful_nanos_avg: mean(histograms.global_read_histograms.successful_nanos),
-                read_failed_nanos_avg: mean(histograms.global_read_histograms.failed_nanos),
-                roundtrip_nanos_avg: mean(histograms.global_read_histograms.roundtrip_nanos),
-            },
-            nodes_write_stats: <span class="macro">vec!</span>[],
-            nodes_read_stats: <span class="macro">vec!</span>[],
-        };
-        histograms
-            .nodes_write_histograms
-            .into_iter()
-            .for_each(|write_histograms| {
-                <span class="kw">let </span>write_stats = WriteStats {
-                    writes_successful_nanos_avg: mean(write_histograms.successful_nanos),
-                    writes_failed_nanos_avg: mean(write_histograms.failed_nanos),
-                };
-                stats.nodes_write_stats.push(write_stats);
-            });
-        histograms
-            .nodes_read_histograms
-            .into_iter()
-            .for_each(|read_histograms| {
-                <span class="kw">let </span>read_stats = ReadStats {
-                    read_successful_nanos_avg: mean(read_histograms.successful_nanos),
-                    read_failed_nanos_avg: mean(read_histograms.failed_nanos),
-                    roundtrip_nanos_avg: mean(read_histograms.roundtrip_nanos),
-                };
-                stats.nodes_read_stats.push(read_stats);
-            });
-        stats
-    }
-}
-
-<span class="kw">fn </span>mean(histogram: Histogram) -&gt; <span class="prelude-ty">Option</span>&lt;u64&gt; {
-    histogram.percentile(<span class="number">50.0</span>).map(|bucket| bucket.high()).ok()
-}
-
-<span class="kw">impl </span>Display <span class="kw">for </span>Stats {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
-        <span class="kw">let </span>json = serde_json::to_string(<span class="self">self</span>).map_err(|<span class="kw">_</span>| std::fmt::Error)<span class="question-mark">?</span>;
-        <span class="macro">write!</span>(f, <span class="string">&quot;{}&quot;</span>, json)
-    }
-}
-</code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bft_bench_core" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (2d14db321 2023-02-15)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</code></pre></div></section></main></body></html>

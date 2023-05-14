@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bft-bench-core/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-1def573a4779b29b.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-d59023bfa12059d2.css"><link rel="stylesheet" disabled href="../../static.files/dark-1ca41bb1e10af075.css"><link rel="stylesheet" disabled href="../../static.files/ayu-18b4181a2f3fb862.css"><script src="../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bft_bench_core/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `bft-bench-core/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bft_bench_core" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (2c41369ac 2023-05-13)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../bft_bench_core/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -492,8 +492,7 @@
 <a href="#492" id="492">492</a>
 <a href="#493" id="493">493</a>
 <a href="#494" id="494">494</a>
-<a href="#495" id="495">495</a>
-</pre><pre class="rust"><code><span class="doccomment">//! A BFT library and platform benchmarking framework.
+</pre></div><pre class="rust"><code><span class="doccomment">//! A BFT library and platform benchmarking framework.
 
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::time::{Duration, Instant};
@@ -512,9 +511,11 @@
 <span class="kw">pub mod </span>config;
 <span class="kw">pub mod </span>result;
 <span class="kw">pub mod </span>stats;
+
 <span class="kw">pub use </span>{bft_binding::<span class="kw-2">*</span>, config::<span class="kw-2">*</span>, result::<span class="kw-2">*</span>};
 
 <span class="kw">use </span>stats::<span class="kw-2">*</span>;
+
 <span class="kw">mod </span>reader;
 <span class="kw">mod </span>worker;
 <span class="kw">mod </span>writer;
@@ -541,11 +542,11 @@
     rx_incoming_writes: mpsc::Receiver&lt;WriterReply&gt;,
     tx_readers_control: broadcast::Sender&lt;WorkerRequest&gt;,
     rx_incoming_reads: mpsc::Receiver&lt;ReaderReply&gt;,
-    stats: Histograms,
+    stats: Stats,
 }
 
 <span class="doccomment">/// Runs a benchmark using the given [`BftBinding`] and [`Config`] and produces [`Stats`].
-</span><span class="kw">pub async fn </span>run&lt;B: BftBinding + <span class="lifetime">&#39;static</span>&gt;(config: Config, <span class="kw-2">mut </span>bft_binding: B) -&gt; <span class="prelude-ty">Result</span>&lt;Stats&gt; {
+</span><span class="kw">pub async fn </span>run&lt;B: BftBinding + <span class="lifetime">&#39;static</span>&gt;(config: Config, <span class="kw-2">mut </span>bft_binding: B) -&gt; <span class="prelude-ty">Result</span>&lt;Reports&gt; {
     <span class="kw">let </span>(tx_writers_control, rx_writers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
     <span class="kw">let </span>(tx_incoming_writes, rx_incoming_writes) = mpsc::channel(DATA_CHANNELS_BUFFER);
     <span class="kw">let </span>(tx_readers_control, rx_readers_control) = broadcast::channel(CONTROL_CHANNELS_BUFFER);
@@ -557,7 +558,8 @@
         rx_incoming_writes,
         tx_readers_control,
         rx_incoming_reads,
-        stats: Histograms::new(
+        stats: Stats::new(
+            Instant::now(),
             config.nodes.len(),
             config
                 .nodes
@@ -629,6 +631,59 @@
     <span class="prelude-val">Ok</span>(state.stats.into())
 }
 
+<span class="kw">fn </span>start_writes&lt;B: BftBinding + <span class="lifetime">&#39;static</span>&gt;(
+    value_size: usize,
+    accesses: <span class="kw-2">&amp;</span>HashMap&lt;usize, NodeAccess&lt;B::Writer, B::Reader&gt;&gt;,
+    write_interval: Duration,
+    rx_writers_control: broadcast::Receiver&lt;WorkerRequest&gt;,
+    tx_incoming_writes: mpsc::Sender&lt;WriterReply&gt;,
+) {
+    <span class="macro">log::info!</span>(<span class="string">&quot;Starting writers&quot;</span>);
+    <span class="kw">for </span>(node_idx, writer) <span class="kw">in </span>accesses.iter().map(|(node_idx, access)| {
+        (
+            node_idx,
+            <span class="kw">match </span>access {
+                NodeAccess::ReadWriteAccess { writer, reader: <span class="kw">_ </span>} =&gt; writer,
+                NodeAccess::WriteOnlyAccess { writer } =&gt; writer,
+            },
+        )
+    }) {
+        <span class="macro">log::info!</span>(<span class="string">&quot;Starting writer for node {}&quot;</span>, node_idx);
+        <span class="kw">let </span>writer = writer.clone();
+        spawn(writer::write::&lt;B::Writer&gt;(
+            value_size,
+            writer,
+            <span class="kw-2">*</span>node_idx,
+            write_interval,
+            rx_writers_control.resubscribe(),
+            tx_incoming_writes.clone(),
+        ));
+    }
+}
+
+<span class="kw">fn </span>start_reads&lt;B: BftBinding + <span class="lifetime">&#39;static</span>&gt;(
+    accesses: <span class="kw-2">&amp;</span>HashMap&lt;usize, NodeAccess&lt;B::Writer, B::Reader&gt;&gt;,
+    rx_readers_control: broadcast::Receiver&lt;WorkerRequest&gt;,
+    tx_incoming_reads: mpsc::Sender&lt;ReaderReply&gt;,
+) -&gt; HashSet&lt;usize&gt; {
+    <span class="macro">log::info!</span>(<span class="string">&quot;Starting readers&quot;</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>read_indices = HashSet::&lt;usize&gt;::new();
+    <span class="kw">for </span>(node_idx, access) <span class="kw">in </span>accesses.iter() {
+        <span class="kw">if let </span>NodeAccess::ReadWriteAccess { writer: <span class="kw">_</span>, reader } = access {
+            <span class="macro">log::info!</span>(<span class="string">&quot;Starting reader for node {}&quot;</span>, node_idx);
+            read_indices.insert(<span class="kw-2">*</span>node_idx);
+            <span class="kw">let </span>reader = reader.clone();
+            spawn(reader::read::&lt;B::Reader&gt;(
+                <span class="kw-2">*</span>node_idx,
+                reader,
+                rx_readers_control.resubscribe(),
+                tx_incoming_reads.clone(),
+            ));
+        }
+    }
+    read_indices
+}
+
 <span class="kw">fn </span>handle_writer_reply(
     state: <span class="kw-2">&amp;mut </span>BftBenchmarkState,
     writers_to_go: <span class="kw-2">&amp;mut </span>HashSet&lt;usize&gt;,
@@ -645,18 +700,11 @@
         } =&gt; {
             <span class="macro">log::debug!</span>(<span class="string">&quot;Writer {} succeeded write {}&quot;</span>, node_idx, uuid);
             <span class="kw">let </span>write_duration_nanos = u64_nanos(write_duration);
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state.stats.global_write_histograms.successful_nanos,
+            update_op_stat(
+                <span class="kw-2">&amp;mut </span>state.stats.global_write,
+                state.stats.nodes_writes.get_mut(node_idx).unwrap(),
                 write_duration_nanos,
-            );
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state
-                    .stats
-                    .nodes_write_histograms
-                    .get_mut(node_idx)
-                    .unwrap()
-                    .successful_nanos,
-                write_duration_nanos,
+                <span class="bool-val">true</span>,
             );
             <span class="kw">match </span>state.in_progress_writes.remove(<span class="kw-2">&amp;</span>uuid) {
                 <span class="prelude-val">Some</span>(WriteStatus::ReadWhenWriteDataAvailable {
@@ -713,18 +761,11 @@
         } =&gt; {
             <span class="macro">log::error!</span>(<span class="string">&quot;Writer {} failed write {}&quot;</span>, node_idx, uuid);
             <span class="kw">let </span>write_duration_nanos = u64_nanos(write_duration);
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state.stats.global_write_histograms.failed_nanos,
+            update_op_stat(
+                <span class="kw-2">&amp;mut </span>state.stats.global_write,
+                state.stats.nodes_writes.get_mut(node_idx).unwrap(),
                 write_duration_nanos,
-            );
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state
-                    .stats
-                    .nodes_write_histograms
-                    .get_mut(node_idx)
-                    .unwrap()
-                    .failed_nanos,
-                write_duration_nanos,
+                <span class="bool-val">false</span>,
             );
         }
         WriterReply::Completed { node_idx } =&gt; {
@@ -756,18 +797,11 @@
         } =&gt; {
             <span class="macro">log::debug!</span>(<span class="string">&quot;Reader {} succeeded read {}&quot;</span>, node_idx, uuid);
             <span class="kw">let </span>read_duration_nanos = u64_nanos(read_duration);
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state.stats.global_read_histograms.successful_nanos,
+            update_op_stat(
+                <span class="kw-2">&amp;mut </span>state.stats.global_read.op,
+                <span class="kw-2">&amp;mut </span>state.stats.nodes_reads.get_mut(node_idx).unwrap().op,
                 read_duration_nanos,
-            );
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state
-                    .stats
-                    .nodes_read_histograms
-                    .get_mut(node_idx)
-                    .unwrap()
-                    .successful_nanos,
-                read_duration_nanos,
+                <span class="bool-val">true</span>,
             );
             <span class="kw">match </span>state.in_progress_writes.remove(<span class="kw-2">&amp;</span>uuid) {
                 <span class="prelude-val">Some</span>(WriteStatus::Written {
@@ -823,18 +857,11 @@
         } =&gt; {
             <span class="macro">log::error!</span>(<span class="string">&quot;Reader {} failed read, error: {}&quot;</span>, node_idx, bft_error);
             <span class="kw">let </span>read_duration_nanos = u64_nanos(read_duration);
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state.stats.global_read_histograms.failed_nanos,
+            update_op_stat(
+                <span class="kw-2">&amp;mut </span>state.stats.global_read.op,
+                <span class="kw-2">&amp;mut </span>state.stats.nodes_reads.get_mut(node_idx).unwrap().op,
                 read_duration_nanos,
-            );
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state
-                    .stats
-                    .nodes_read_histograms
-                    .get_mut(node_idx)
-                    .unwrap()
-                    .failed_nanos,
-                read_duration_nanos,
+                <span class="bool-val">false</span>,
             );
         }
 
@@ -869,17 +896,18 @@
         node_round_trip_nanos
     );
 
-    increment_histogram(
-        <span class="kw-2">&amp;mut </span>state
-            .stats
-            .nodes_read_histograms
-            .get_mut(node_idx)
-            .unwrap()
-            .roundtrip_nanos,
-        node_round_trip_nanos,
-    );
-
     <span class="kw">if </span>nodes_awaiting_read.remove(<span class="kw-2">&amp;</span>node_idx) {
+        <span class="kw">let </span>now = Instant::now();
+        update_stat(
+            <span class="kw-2">&amp;mut </span>state
+                .stats
+                .nodes_reads
+                .get_mut(node_idx)
+                .unwrap()
+                .round_trip,
+            now,
+            node_round_trip_nanos,
+        );
         <span class="kw">if </span>nodes_awaiting_read.is_empty() {
             <span class="comment">// Last read
             </span><span class="macro">log::debug!</span>(
@@ -888,8 +916,9 @@
                 node_idx,
                 uuid
             );
-            increment_histogram(
-                <span class="kw-2">&amp;mut </span>state.stats.global_read_histograms.roundtrip_nanos,
+            update_stat(
+                <span class="kw-2">&amp;mut </span>state.stats.global_read.round_trip,
+                now,
                 node_round_trip_nanos,
             );
         } <span class="kw">else </span>{
@@ -914,59 +943,6 @@
     </span>}
 }
 
-<span class="kw">fn </span>start_writes&lt;B: BftBinding + <span class="lifetime">&#39;static</span>&gt;(
-    value_size: usize,
-    accesses: <span class="kw-2">&amp;</span>HashMap&lt;usize, NodeAccess&lt;B::Writer, B::Reader&gt;&gt;,
-    write_interval: Duration,
-    rx_writers_control: broadcast::Receiver&lt;WorkerRequest&gt;,
-    tx_incoming_writes: mpsc::Sender&lt;WriterReply&gt;,
-) {
-    <span class="macro">log::info!</span>(<span class="string">&quot;Starting writers&quot;</span>);
-    <span class="kw">for </span>(node_idx, writer) <span class="kw">in </span>accesses.iter().map(|(node_idx, access)| {
-        (
-            node_idx,
-            <span class="kw">match </span>access {
-                NodeAccess::ReadWriteAccess { writer, reader: <span class="kw">_ </span>} =&gt; writer,
-                NodeAccess::WriteOnlyAccess { writer } =&gt; writer,
-            },
-        )
-    }) {
-        <span class="macro">log::info!</span>(<span class="string">&quot;Starting writer for node {}&quot;</span>, node_idx);
-        <span class="kw">let </span>writer = writer.clone();
-        spawn(writer::write::&lt;B::Writer&gt;(
-            value_size,
-            writer,
-            <span class="kw-2">*</span>node_idx,
-            write_interval,
-            rx_writers_control.resubscribe(),
-            tx_incoming_writes.clone(),
-        ));
-    }
-}
-
-<span class="kw">fn </span>start_reads&lt;B: BftBinding + <span class="lifetime">&#39;static</span>&gt;(
-    accesses: <span class="kw-2">&amp;</span>HashMap&lt;usize, NodeAccess&lt;B::Writer, B::Reader&gt;&gt;,
-    rx_readers_control: broadcast::Receiver&lt;WorkerRequest&gt;,
-    tx_incoming_reads: mpsc::Sender&lt;ReaderReply&gt;,
-) -&gt; HashSet&lt;usize&gt; {
-    <span class="macro">log::info!</span>(<span class="string">&quot;Starting readers&quot;</span>);
-    <span class="kw">let </span><span class="kw-2">mut </span>read_indices = HashSet::&lt;usize&gt;::new();
-    <span class="kw">for </span>(node_idx, access) <span class="kw">in </span>accesses.iter() {
-        <span class="kw">if let </span>NodeAccess::ReadWriteAccess { writer: <span class="kw">_</span>, reader } = access {
-            <span class="macro">log::info!</span>(<span class="string">&quot;Starting reader for node {}&quot;</span>, node_idx);
-            read_indices.insert(<span class="kw-2">*</span>node_idx);
-            <span class="kw">let </span>reader = reader.clone();
-            spawn(reader::read::&lt;B::Reader&gt;(
-                <span class="kw-2">*</span>node_idx,
-                reader,
-                rx_readers_control.resubscribe(),
-                tx_incoming_reads.clone(),
-            ));
-        }
-    }
-    read_indices
-}
-
 <span class="kw">fn </span>request_stop(state: <span class="kw-2">&amp;mut </span>BftBenchmarkState) {
     <span class="macro">log::info!</span>(<span class="string">&quot;Signalling workers to stop&quot;</span>);
     state
@@ -979,6 +955,28 @@
         .expect(<span class="string">&quot;Internal error: cannot send readers completion request&quot;</span>);
 }
 
+<span class="kw">fn </span>update_op_stat(
+    global_op_stat: <span class="kw-2">&amp;mut </span>OpStat,
+    node_op_stat: <span class="kw-2">&amp;mut </span>OpStat,
+    duration_nanos: u64,
+    ok: bool,
+) {
+    <span class="kw">let </span>now = Instant::now();
+    <span class="kw">if </span>ok {
+        update_stat(<span class="kw-2">&amp;mut </span>global_op_stat.successful, now, duration_nanos);
+        update_stat(<span class="kw-2">&amp;mut </span>node_op_stat.successful, now, duration_nanos);
+    } <span class="kw">else </span>{
+        update_stat(<span class="kw-2">&amp;mut </span>global_op_stat.failed, now, duration_nanos);
+        update_stat(<span class="kw-2">&amp;mut </span>node_op_stat.failed, now, duration_nanos);
+    }
+}
+
+<span class="kw">fn </span>update_stat(stat: <span class="kw-2">&amp;mut </span>Stat, now: Instant, duration_nanos: u64) {
+    increment_histogram(<span class="kw-2">&amp;mut </span>stat.histogram, duration_nanos);
+    stat.counter.count += <span class="number">1</span>;
+    stat.counter.now = now;
+}
+
 <span class="kw">fn </span>increment_histogram(histo: <span class="kw-2">&amp;mut </span>Histogram, elapsed_nanos: u64) {
     histo
         .increment(elapsed_nanos, <span class="number">1</span>)
@@ -988,5 +986,4 @@
 <span class="kw">fn </span>u64_nanos(duration: Duration) -&gt; u64 {
     u64::try_from(duration.as_nanos()).expect(<span class="string">&quot;Internal error: duration nanos don&#39;t fit 64 bits&quot;</span>)
 }
-</code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="bft_bench_core" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (2d14db321 2023-02-15)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
+</code></pre></div></section></main></body></html>

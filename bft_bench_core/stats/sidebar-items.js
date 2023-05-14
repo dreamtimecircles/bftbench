@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ReadStats","Stats","WriteStats"]};
+window.SIDEBAR_ITEMS = {"struct":["OpReport","ReadReport","Report","Reports","WithNodeIndex"]};
