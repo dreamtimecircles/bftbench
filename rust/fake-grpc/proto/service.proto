@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package grpc.fake;
+
+service Service {
+  rpc Write(stream Tx) returns (Bye) {}
+  rpc Read(Subscription) returns (Batch) {}
+}
+
+message Tx {
+  bytes payload = 1;
+}
+
+message Bye {}
+
+message Subscription {
+  uint64 from = 1;
+}
+
+message Batch {
+  uint64 idx = 1;
+  repeated bytes txs = 2;
+}
