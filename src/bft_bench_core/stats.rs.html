@@ -203,11 +203,18 @@
 <a href="#203" id="203">203</a>
 <a href="#204" id="204">204</a>
 <a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::ops::Sub;
 <span class="kw">use </span>std::{fmt::Display, time::Instant};
 
 <span class="kw">use </span>histogram::Histogram;
 <span class="kw">use </span>serde_derive::Serialize;
+
+<span class="kw">const </span>HISTOGRAM_MAX_VALUE: u64 = u32::MAX <span class="kw">as </span>u64;
 
 <span class="attr">#[derive(Clone)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Counter {
@@ -395,7 +402,10 @@
 }
 
 <span class="kw">fn </span>new_default_histogram() -&gt; Histogram {
-    Histogram::builder().build().unwrap()
+    Histogram::builder()
+        .maximum_value(HISTOGRAM_MAX_VALUE)
+        .build()
+        .unwrap()
 }
 
 <span class="kw">fn </span>mean(histogram: <span class="kw-2">&amp;</span>Histogram) -&gt; <span class="prelude-ty">Option</span>&lt;u64&gt; {

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["NodeAccess"],"trait":["BftBinding","BftReader","BftWriter"]};
+window.SIDEBAR_ITEMS = {"enum":["NodeAccess"],"fn":["create_random_value"],"trait":["BftBinding","BftReader","BftWriter"]};

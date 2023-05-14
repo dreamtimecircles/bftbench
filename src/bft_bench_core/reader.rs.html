@@ -77,12 +77,16 @@
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
 <a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::time::{Duration, Instant};
 
 <span class="kw">use </span>tokio::sync::{broadcast, mpsc};
 <span class="kw">use </span>uuid::Uuid;
 
 <span class="kw">use crate</span>::{worker::WorkerRequest, BftError, BftReader};
+
+<span class="kw">const </span>READ_TIMEOUT: Duration = Duration::from_secs(<span class="number">1</span>);
 
 <span class="attr">#[derive(Debug)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>ReaderReply {
@@ -111,7 +115,7 @@
     <span class="kw">loop </span>{
         <span class="kw">let </span>read_start = Instant::now();
         <span class="macro">log::debug!</span>(<span class="string">&quot;Reader {}: reading&quot;</span>, node_idx);
-        <span class="kw">match </span>tokio::time::timeout(Duration::from_secs(<span class="number">60</span>), reader.read()).<span class="kw">await </span>{
+        <span class="kw">match </span>tokio::time::timeout(READ_TIMEOUT, reader.read()).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(read_result) =&gt; {
                 <span class="kw">let </span>read_completion_instant = Instant::now();
                 <span class="kw">let </span>read_duration = read_start.elapsed();

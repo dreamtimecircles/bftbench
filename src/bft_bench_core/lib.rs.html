@@ -492,6 +492,7 @@
 <a href="#492" id="492">492</a>
 <a href="#493" id="493">493</a>
 <a href="#494" id="494">494</a>
+<a href="#495" id="495">495</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! A BFT library and platform benchmarking framework.
 
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
@@ -520,10 +521,10 @@
 <span class="kw">mod </span>worker;
 <span class="kw">mod </span>writer;
 
-<span class="kw">const </span>UUID_SIZE: usize = <span class="number">16</span>;
+<span class="kw">pub const </span>UUID_SIZE: usize = <span class="number">16</span>;
 
 <span class="kw">const </span>CONTROL_CHANNELS_BUFFER: usize = <span class="number">1</span>;
-<span class="kw">const </span>DATA_CHANNELS_BUFFER: usize = <span class="number">1024 </span>* <span class="number">1024</span>;
+<span class="kw">const </span>DATA_CHANNELS_BUFFER: usize = <span class="number">128 </span>* <span class="number">1024 </span>* <span class="number">1024</span>;
 
 <span class="kw">enum </span>WriteStatus {
     Written {
@@ -588,7 +589,6 @@
     <span class="macro">log::info!</span>(<span class="string">&quot;Read nodes: {:?}&quot;</span>, read_indices);
 
     start_writes::&lt;B&gt;(
-        config.transaction_size - UUID_SIZE - <span class="number">1</span>,
         <span class="kw-2">&amp;</span>accesses,
         config.write_interval,
         rx_writers_control,
@@ -632,7 +632,6 @@
 }
 
 <span class="kw">fn </span>start_writes&lt;B: BftBinding + <span class="lifetime">&#39;static</span>&gt;(
-    value_size: usize,
     accesses: <span class="kw-2">&amp;</span>HashMap&lt;usize, NodeAccess&lt;B::Writer, B::Reader&gt;&gt;,
     write_interval: Duration,
     rx_writers_control: broadcast::Receiver&lt;WorkerRequest&gt;,
@@ -651,7 +650,6 @@
         <span class="macro">log::info!</span>(<span class="string">&quot;Starting writer for node {}&quot;</span>, node_idx);
         <span class="kw">let </span>writer = writer.clone();
         spawn(writer::write::&lt;B::Writer&gt;(
-            value_size,
             writer,
             <span class="kw-2">*</span>node_idx,
             write_interval,
@@ -978,9 +976,13 @@
 }
 
 <span class="kw">fn </span>increment_histogram(histo: <span class="kw-2">&amp;mut </span>Histogram, elapsed_nanos: u64) {
-    histo
-        .increment(elapsed_nanos, <span class="number">1</span>)
-        .expect(<span class="string">&quot;Internal error: cannot increment histogram&quot;</span>);
+    <span class="kw">match </span>histo.increment(elapsed_nanos, <span class="number">1</span>) {
+        <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {}
+        <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="macro">log::error!</span>(
+            <span class="string">&quot;Internal error: cannot increment histogram for {}&quot;</span>,
+            elapsed_nanos
+        ),
+    }
 }
 
 <span class="kw">fn </span>u64_nanos(duration: Duration) -&gt; u64 {
