@@ -26,10 +26,10 @@ mod reader;
 mod worker;
 mod writer;
 
-const UUID_SIZE: usize = 16;
+pub const UUID_SIZE: usize = 16;
 
 const CONTROL_CHANNELS_BUFFER: usize = 1;
-const DATA_CHANNELS_BUFFER: usize = 1024 * 1024;
+const DATA_CHANNELS_BUFFER: usize = 128 * 1024 * 1024;
 
 enum WriteStatus {
     Written {
@@ -94,7 +94,6 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
     log::info!("Read nodes: {:?}", read_indices);
 
     start_writes::<B>(
-        config.transaction_size - UUID_SIZE - 1,
         &accesses,
         config.write_interval,
         rx_writers_control,
@@ -138,7 +137,6 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
 }
 
 fn start_writes<B: BftBinding + 'static>(
-    value_size: usize,
     accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
     write_interval: Duration,
     rx_writers_control: broadcast::Receiver<WorkerRequest>,
@@ -157,7 +155,6 @@ fn start_writes<B: BftBinding + 'static>(
         log::info!("Starting writer for node {}", node_idx);
         let writer = writer.clone();
         spawn(writer::write::<B::Writer>(
-            value_size,
             writer,
             *node_idx,
             write_interval,
@@ -484,9 +481,13 @@ fn update_stat(stat: &mut Stat, now: Instant, duration_nanos: u64) {
 }
 
 fn increment_histogram(histo: &mut Histogram, elapsed_nanos: u64) {
-    histo
-        .increment(elapsed_nanos, 1)
-        .expect("Internal error: cannot increment histogram");
+    match histo.increment(elapsed_nanos, 1) {
+        Ok(_) => {}
+        Err(_) => log::error!(
+            "Internal error: cannot increment histogram for {}",
+            elapsed_nanos
+        ),
+    }
 }
 
 fn u64_nanos(duration: Duration) -> u64 {

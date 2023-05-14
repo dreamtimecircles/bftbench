@@ -2,16 +2,15 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use bytes::Bytes;
 use uuid::Uuid;
 
 use bft_bench_core::{
-    BftBinding, BftError, BftReader, BftWriter, Node, NodeAccess, NodeEndpoint, ReadWriteNode,
-    Result, WriteNode,
+    BftBinding, BftError, BftReader, BftWriter, Config, Node, NodeAccess, NodeEndpoint,
+    ReadWriteNode, Result, WriteNode,
 };
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 
-const CHANNEL_BUFFER_SIZE: usize = 1024 * 1024;
+const CHANNEL_BUFFER_SIZE: usize = 128 * 1024 * 1024;
 
 pub struct ShortCircuitedBftBinding {
     writer: Writer,
@@ -44,7 +43,7 @@ impl BftBinding for ShortCircuitedBftBinding {
 
     type Reader = Reader;
 
-    fn new() -> Self {
+    fn new(_: &Config) -> Self {
         let (sender, receiver) = channel::<Uuid>(CHANNEL_BUFFER_SIZE);
         let sender_for_reader = sender.clone();
         ShortCircuitedBftBinding {
@@ -86,7 +85,7 @@ impl BftBinding for ShortCircuitedBftBinding {
 
 #[async_trait]
 impl BftWriter for Writer {
-    async fn write(&mut self, key: Uuid, _value: Bytes) -> Result<()> {
+    async fn write(&mut self, key: Uuid) -> Result<()> {
         match self.sender.send(key) {
             Ok(_) => Ok(()),
             Err(error) => Err(BftError::dynamic(format!(

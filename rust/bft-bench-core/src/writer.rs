@@ -1,7 +1,5 @@
 use std::time::{Duration, Instant};
 
-use bytes::Bytes;
-use rand::RngCore;
 use tokio::{
     spawn,
     sync::{broadcast, mpsc},
@@ -29,14 +27,18 @@ pub(crate) enum WriterReply {
 }
 
 pub(crate) async fn write<W: BftWriter + 'static>(
-    value_size: usize,
     writer: W,
     node_idx: usize,
     write_interval: Duration,
     mut rx_writers_control: broadcast::Receiver<WorkerRequest>,
     tx_incoming_writes: mpsc::Sender<WriterReply>,
 ) {
+    let mut interval = tokio::time::interval(write_interval);
     loop {
+        log::debug!("Writer {}: waiting for next schedule", node_idx);
+        interval.tick().await;
+        log::debug!("Writer {}: starting write", node_idx);
+
         if let Ok(WorkerRequest::Stop()) = rx_writers_control.try_recv() {
             log::debug!("Writer {}: ending", node_idx);
             tx_incoming_writes
@@ -52,7 +54,7 @@ pub(crate) async fn write<W: BftWriter + 'static>(
         spawn(async move {
             log::debug!("Writer {}: starting write {}", node_idx, uuid);
             let write_start = Instant::now();
-            let result = writer.write(uuid, create_value(value_size)).await;
+            let result = writer.write(uuid).await;
             let write_duration = write_start.elapsed();
             match result {
                 Ok(()) => {
@@ -81,24 +83,5 @@ pub(crate) async fn write<W: BftWriter + 'static>(
             };
             result
         });
-        log::debug!("Writer {}: waiting for next schedule", node_idx);
-        tokio::time::sleep(write_interval).await;
-    }
-}
-
-fn create_value(value_size: usize) -> Bytes {
-    let mut value = vec![0u8; value_size];
-    rand::rngs::OsRng.fill_bytes(&mut value);
-    log::debug!("Random value of size {} generated", value_size);
-    Bytes::from(value)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_create_value() {
-        assert_eq!(create_value(2).len(), 2)
     }
 }

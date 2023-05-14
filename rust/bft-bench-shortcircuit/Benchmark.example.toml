@@ -1,19 +1,14 @@
-transaction_size=100
+transaction_size=20000
 
 [run_duration]
-secs=5
+secs=60
 nanos=0
 
 [write_interval]
-secs=1
-nanos=0
+secs=0
+nanos=2500
 
 [[nodes]]
 [nodes.ReadWrite.node.endpoint]
-host = "localhost"
-port = 4000
-
-[[nodes]]
-[nodes.Write.endpoint]
 host = "localhost"
 port = 4000
