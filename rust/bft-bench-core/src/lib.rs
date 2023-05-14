@@ -86,7 +86,12 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         accesses.insert(node_idx, bft_binding.access(node).await);
     }
 
-    let read_indices = start_reads::<B>(&accesses, rx_readers_control, tx_incoming_reads);
+    let read_indices = start_reads::<B>(
+        &accesses,
+        rx_readers_control,
+        tx_incoming_reads,
+        config.read_grace,
+    );
     let mut readers_to_go = read_indices.clone();
 
     log::info!("Read nodes: {:?}", read_indices);
@@ -96,11 +101,6 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         config.write_interval,
         rx_writers_control,
         tx_incoming_writes,
-    );
-
-    log::info!(
-        "The benchmark will be run for {} seconds",
-        config.run_duration.as_secs_f64()
     );
 
     let (tx_report, mut rx_report) = mpsc::channel(CONTROL_CHANNELS_BUFFER);
@@ -116,7 +116,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         spawn(async move {
             loop {
                 sleep(i).await;
-                if let Err(_) = tx_report_periodic.send(false).await {
+                if tx_report_periodic.send(false).await.is_err() {
                     log::debug!("Report channel closed, stopping periodic report");
                     break;
                 }
@@ -183,6 +183,7 @@ fn start_reads<B: BftBinding + 'static>(
     accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
     rx_readers_control: broadcast::Receiver<WorkerRequest>,
     tx_incoming_reads: mpsc::Sender<ReaderReply>,
+    read_grace: Duration,
 ) -> HashSet<usize> {
     log::info!("Starting readers");
     let mut read_indices = HashSet::<usize>::new();
@@ -196,6 +197,7 @@ fn start_reads<B: BftBinding + 'static>(
                 reader,
                 rx_readers_control.resubscribe(),
                 tx_incoming_reads.clone(),
+                read_grace,
             ));
         }
     }

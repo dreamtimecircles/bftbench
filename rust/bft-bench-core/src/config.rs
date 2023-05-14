@@ -7,6 +7,7 @@ pub struct Config {
     pub run_duration: Duration,
     pub report_interval: Option<Duration>,
     pub write_interval: Duration,
+    pub read_grace: Duration,
     pub transaction_size: usize,
     pub nodes: Vec<Node>,
 }
