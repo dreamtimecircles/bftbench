@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
         config
     );
 
-    let sc_binding = ShortCircuitedBftBinding::new();
+    let sc_binding = ShortCircuitedBftBinding::new(&config);
 
     log::info!("Starting benchmark");
 
