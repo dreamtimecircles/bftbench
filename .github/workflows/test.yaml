@@ -35,6 +35,7 @@ jobs:
             ~/.cargo/registry/cache
             rust/target
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
+      - run: sudo apt install -y protobuf-compiler libprotobuf-dev
       - name: Run the short-circuit benchmark
         run: |
           cd rust
