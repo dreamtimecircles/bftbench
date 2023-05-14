@@ -508,6 +508,8 @@
 <a href="#508" id="508">508</a>
 <a href="#509" id="509">509</a>
 <a href="#510" id="510">510</a>
+<a href="#511" id="511">511</a>
+<a href="#512" id="512">512</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! A BFT library and platform benchmarking framework.
 
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
@@ -596,7 +598,12 @@
         accesses.insert(node_idx, bft_binding.access(node).<span class="kw">await</span>);
     }
 
-    <span class="kw">let </span>read_indices = start_reads::&lt;B&gt;(<span class="kw-2">&amp;</span>accesses, rx_readers_control, tx_incoming_reads);
+    <span class="kw">let </span>read_indices = start_reads::&lt;B&gt;(
+        <span class="kw-2">&amp;</span>accesses,
+        rx_readers_control,
+        tx_incoming_reads,
+        config.read_grace,
+    );
     <span class="kw">let </span><span class="kw-2">mut </span>readers_to_go = read_indices.clone();
 
     <span class="macro">log::info!</span>(<span class="string">&quot;Read nodes: {:?}&quot;</span>, read_indices);
@@ -606,11 +613,6 @@
         config.write_interval,
         rx_writers_control,
         tx_incoming_writes,
-    );
-
-    <span class="macro">log::info!</span>(
-        <span class="string">&quot;The benchmark will be run for {} seconds&quot;</span>,
-        config.run_duration.as_secs_f64()
     );
 
     <span class="kw">let </span>(tx_report, <span class="kw-2">mut </span>rx_report) = mpsc::channel(CONTROL_CHANNELS_BUFFER);
@@ -626,7 +628,7 @@
         spawn(<span class="kw">async move </span>{
             <span class="kw">loop </span>{
                 sleep(i).<span class="kw">await</span>;
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(<span class="kw">_</span>) = tx_report_periodic.send(<span class="bool-val">false</span>).<span class="kw">await </span>{
+                <span class="kw">if </span>tx_report_periodic.send(<span class="bool-val">false</span>).<span class="kw">await</span>.is_err() {
                     <span class="macro">log::debug!</span>(<span class="string">&quot;Report channel closed, stopping periodic report&quot;</span>);
                     <span class="kw">break</span>;
                 }
@@ -693,6 +695,7 @@
     accesses: <span class="kw-2">&amp;</span>HashMap&lt;usize, NodeAccess&lt;B::Writer, B::Reader&gt;&gt;,
     rx_readers_control: broadcast::Receiver&lt;WorkerRequest&gt;,
     tx_incoming_reads: mpsc::Sender&lt;ReaderReply&gt;,
+    read_grace: Duration,
 ) -&gt; HashSet&lt;usize&gt; {
     <span class="macro">log::info!</span>(<span class="string">&quot;Starting readers&quot;</span>);
     <span class="kw">let </span><span class="kw-2">mut </span>read_indices = HashSet::&lt;usize&gt;::new();
@@ -706,6 +709,7 @@
                 reader,
                 rx_readers_control.resubscribe(),
                 tx_incoming_reads.clone(),
+                read_grace,
             ));
         }
     }

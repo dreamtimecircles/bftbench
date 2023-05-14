@@ -32,6 +32,7 @@
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>serde_derive::{Deserialize, Serialize};
@@ -41,6 +42,7 @@
     <span class="kw">pub </span>run_duration: Duration,
     <span class="kw">pub </span>report_interval: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
     <span class="kw">pub </span>write_interval: Duration,
+    <span class="kw">pub </span>read_grace: Duration,
     <span class="kw">pub </span>transaction_size: usize,
     <span class="kw">pub </span>nodes: Vec&lt;Node&gt;,
 }
