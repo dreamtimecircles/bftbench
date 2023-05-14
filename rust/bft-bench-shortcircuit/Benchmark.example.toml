@@ -4,6 +4,10 @@ transaction_size=20000
 secs=60
 nanos=0
 
+[report_interval]
+secs=10
+nanos=0
+
 [write_interval]
 secs=0
 nanos=2500

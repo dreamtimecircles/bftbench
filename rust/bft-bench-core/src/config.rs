@@ -5,6 +5,7 @@ use serde_derive::{Deserialize, Serialize};
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Config {
     pub run_duration: Duration,
+    pub report_interval: Option<Duration>,
     pub write_interval: Duration,
     pub transaction_size: usize,
     pub nodes: Vec<Node>,

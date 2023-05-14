@@ -95,8 +95,8 @@ pub struct Report {
     pub nanos_99: Option<u64>,
 }
 
-impl From<Stat> for Report {
-    fn from(stat: Stat) -> Self {
+impl From<&Stat> for Report {
+    fn from(stat: &Stat) -> Self {
         Report {
             count: stat.counter.count,
             rate_s: if stat.counter.count == 0 {
@@ -124,11 +124,11 @@ pub struct OpReport {
     pub failed: Report,
 }
 
-impl From<OpStat> for OpReport {
-    fn from(write_stat: OpStat) -> Self {
+impl From<&OpStat> for OpReport {
+    fn from(write_stat: &OpStat) -> Self {
         OpReport {
-            successful: write_stat.successful.into(),
-            failed: write_stat.failed.into(),
+            successful: (&write_stat.successful).into(),
+            failed: (&write_stat.failed).into(),
         }
     }
 }
@@ -139,11 +139,11 @@ pub struct ReadReport {
     pub round_trip: Report,
 }
 
-impl From<ReadStat> for ReadReport {
-    fn from(read_stat: ReadStat) -> Self {
+impl From<&ReadStat> for ReadReport {
+    fn from(read_stat: &ReadStat) -> Self {
         ReadReport {
-            op: read_stat.op.into(),
-            round_trip: read_stat.round_trip.into(),
+            op: (&read_stat.op).into(),
+            round_trip: (&read_stat.round_trip).into(),
         }
     }
 }
@@ -162,13 +162,13 @@ pub struct Reports {
     pub nodes_reads: Vec<WithNodeIndex<ReadReport>>,
 }
 
-impl From<Stats> for Reports {
-    fn from(stats: Stats) -> Self {
+impl From<&Stats> for Reports {
+    fn from(stats: &Stats) -> Self {
         Reports {
-            global_write: stats.global_write.into(),
-            global_read: stats.global_read.into(),
-            nodes_writes: into_reports(stats.nodes_writes),
-            nodes_reads: into_reports(stats.nodes_reads),
+            global_write: (&stats.global_write).into(),
+            global_read: (&stats.global_read).into(),
+            nodes_writes: into_reports(stats.nodes_writes.iter().collect()),
+            nodes_reads: into_reports(stats.nodes_reads.iter().collect()),
         }
     }
 }
