@@ -18,5 +18,5 @@ nanos=0
 
 [[nodes]]
 [nodes.ReadWrite.node.endpoint]
-host = "localhost"
-port = 4000
+host = "localhost" # Unused
+port = 4000 # Unused
