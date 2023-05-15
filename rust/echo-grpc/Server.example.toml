@@ -1,1 +1,1 @@
-listen="[::1]:50051"
+listen="localhost:50051"
