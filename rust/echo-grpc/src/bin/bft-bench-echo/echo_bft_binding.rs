@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
 use async_stream::stream;
 use async_trait::async_trait;
 use tokio::sync::mpsc::{channel, Sender};
-use tokio::sync::Mutex;
 use tokio_stream::StreamExt;
 use tonic::Streaming;
 use uuid::Uuid;
@@ -27,15 +24,7 @@ pub struct Writer {
 }
 
 pub struct Reader {
-    response_stream: Arc<Mutex<Streaming<pb::Tx>>>,
-}
-
-impl Clone for Reader {
-    fn clone(&self) -> Self {
-        Self {
-            response_stream: self.response_stream.clone(),
-        }
-    }
+    response_stream: Streaming<pb::Tx>,
 }
 
 #[async_trait]
@@ -78,9 +67,7 @@ impl BftBinding for EchoBftBinding {
 
                 NodeAccess::ReadWriteAccess {
                     writer: Writer { sender },
-                    reader: Reader {
-                        response_stream: Arc::new(Mutex::new(response_stream)),
-                    },
+                    reader: Reader { response_stream },
                 }
             }
         }
@@ -110,8 +97,7 @@ impl BftWriter for Writer {
 #[async_trait]
 impl BftReader for Reader {
     async fn read(&mut self) -> Result<Uuid> {
-        let mut resp_stream = self.response_stream.lock().await;
-        match resp_stream.next().await.unwrap() {
+        match self.response_stream.next().await.unwrap() {
             Ok(tx) => Ok(Uuid::from_slice(&tx.tx_id).unwrap()),
             Err(error) => Err(BftError::dynamic(format!(
                 "Error receiving from the stream: {}",
