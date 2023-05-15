@@ -38,7 +38,7 @@ pub(crate) async fn read<R: BftReader + 'static>(
                 let read_completion_instant = Instant::now();
                 let read_duration = read_start.elapsed();
                 match read_result {
-                    Ok(uuid) => {
+                    Ok(Some(uuid)) => {
                         log::debug!("Reader {}: read transaction {}", node_idx, uuid);
                         tx_incoming_reads
                             .send(ReaderReply::SuccessfulRead {
@@ -49,6 +49,14 @@ pub(crate) async fn read<R: BftReader + 'static>(
                             })
                             .await
                             .expect("Receiver closed");
+                    }
+                    Ok(None) => {
+                        log::debug!("Reader {}: ending (closed from reader)", node_idx);
+                        tx_incoming_reads
+                            .send(ReaderReply::Completed { node_idx })
+                            .await
+                            .expect("Reader completion message couldn't be sent");
+                        break;
                     }
                     Err(bft_error) => {
                         log::error!("Reader {}: read failed: {}", node_idx, bft_error);
@@ -65,7 +73,7 @@ pub(crate) async fn read<R: BftReader + 'static>(
             }
             Err(_) => {
                 if let Ok(WorkerRequest::Stop()) = rx_readers_control.try_recv() {
-                    log::debug!("Reader {}: ending", node_idx);
+                    log::debug!("Reader {}: ending (closed by completion command)", node_idx);
                     tx_incoming_reads
                         .send(ReaderReply::Completed { node_idx })
                         .await

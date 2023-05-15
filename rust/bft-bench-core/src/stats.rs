@@ -90,9 +90,9 @@ impl Stats {
 pub struct Report {
     pub count: u64,
     pub rate_s: Option<u64>,
-    pub nanos_avg: Option<u64>,
-    pub nanos_95: Option<u64>,
-    pub nanos_99: Option<u64>,
+    pub micros_avg: Option<u64>,
+    pub micros_95: Option<u64>,
+    pub micros_99: Option<u64>,
 }
 
 impl From<&Stat> for Report {
@@ -111,9 +111,9 @@ impl From<&Stat> for Report {
                         .as_secs_f64())) as u64,
                 )
             },
-            nanos_avg: mean(&stat.histogram),
-            nanos_95: perc(95.0, &stat.histogram),
-            nanos_99: perc(99.0, &stat.histogram),
+            micros_avg: mean(&stat.histogram),
+            micros_95: perc(95.0, &stat.histogram),
+            micros_99: perc(99.0, &stat.histogram),
         }
     }
 }

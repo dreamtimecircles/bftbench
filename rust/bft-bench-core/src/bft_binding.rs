@@ -23,7 +23,11 @@ pub enum NodeAccess<Writer: BftWriter, Reader: BftReader> {
     WriteOnlyAccess { writer: Writer },
 }
 
-/// A [`BftWriter`] allows to write a key-value pair to a node.
+/// A [`BftWriter`] allows to write a key-value pair to a node. It must be [`Clone`] because
+/// writes to a single node are scheduled at regular intervals, without waiting for previous
+/// writes to terminate, thus, writes to the same node can happen concurrently. The framework
+/// avoids locking as much as possible and requires thus cloneability. The binding is however
+/// free to implement cloneability with locking, i.e., with [`std::sync::Arc`] and a mutex.
 #[async_trait]
 pub trait BftWriter: Send + Clone {
     async fn write(&mut self, key: Uuid) -> Result<()>;
@@ -37,8 +41,8 @@ pub trait BftWriter: Send + Clone {
 /// ordering when at least `2f + 1` nodes are honest, where `f` is the maximum number
 /// of dishonest nodes.
 #[async_trait]
-pub trait BftReader: Send + Clone {
-    async fn read(&mut self) -> Result<Uuid>;
+pub trait BftReader: Send {
+    async fn read(&mut self) -> Result<Option<Uuid>>;
 }
 
 pub fn create_random_value(value_size: usize) -> Bytes {

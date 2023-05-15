@@ -81,13 +81,22 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
         .map(|(node_idx, _)| node_idx)
         .collect::<HashSet<_>>();
 
-    let mut accesses = HashMap::<usize, NodeAccess<B::Writer, B::Reader>>::new();
+    let mut write_accesses = HashMap::<usize, B::Writer>::new();
+    let mut read_accesses = HashMap::<usize, B::Reader>::new();
     for (node_idx, node) in config.nodes.into_iter().enumerate() {
-        accesses.insert(node_idx, bft_binding.access(node).await);
+        match bft_binding.access(node).await {
+            NodeAccess::ReadWriteAccess { reader, writer } => {
+                write_accesses.insert(node_idx, writer);
+                read_accesses.insert(node_idx, reader);
+            }
+            NodeAccess::WriteOnlyAccess { writer } => {
+                write_accesses.insert(node_idx, writer);
+            }
+        }
     }
 
     let read_indices = start_reads::<B>(
-        &accesses,
+        read_accesses,
         rx_readers_control,
         tx_incoming_reads,
         config.read_grace,
@@ -97,7 +106,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
     log::info!("Read nodes: {:?}", read_indices);
 
     start_writes::<B>(
-        &accesses,
+        write_accesses,
         config.write_interval,
         rx_writers_control,
         tx_incoming_writes,
@@ -152,26 +161,17 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
 }
 
 fn start_writes<B: BftBinding + 'static>(
-    accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
+    write_accesses: HashMap<usize, B::Writer>,
     write_interval: Duration,
     rx_writers_control: broadcast::Receiver<WorkerRequest>,
     tx_incoming_writes: mpsc::Sender<WriterReply>,
 ) {
     log::info!("Starting writers");
-    for (node_idx, writer) in accesses.iter().map(|(node_idx, access)| {
-        (
-            node_idx,
-            match access {
-                NodeAccess::ReadWriteAccess { writer, reader: _ } => writer,
-                NodeAccess::WriteOnlyAccess { writer } => writer,
-            },
-        )
-    }) {
+    for (node_idx, writer) in write_accesses.into_iter() {
         log::info!("Starting writer for node {}", node_idx);
-        let writer = writer.clone();
         spawn(writer::write::<B::Writer>(
             writer,
-            *node_idx,
+            node_idx,
             write_interval,
             rx_writers_control.resubscribe(),
             tx_incoming_writes.clone(),
@@ -180,26 +180,23 @@ fn start_writes<B: BftBinding + 'static>(
 }
 
 fn start_reads<B: BftBinding + 'static>(
-    accesses: &HashMap<usize, NodeAccess<B::Writer, B::Reader>>,
+    read_accesses: HashMap<usize, B::Reader>,
     rx_readers_control: broadcast::Receiver<WorkerRequest>,
     tx_incoming_reads: mpsc::Sender<ReaderReply>,
     read_grace: Duration,
 ) -> HashSet<usize> {
     log::info!("Starting readers");
     let mut read_indices = HashSet::<usize>::new();
-    for (node_idx, access) in accesses.iter() {
-        if let NodeAccess::ReadWriteAccess { writer: _, reader } = access {
-            log::info!("Starting reader for node {}", node_idx);
-            read_indices.insert(*node_idx);
-            let reader = reader.clone();
-            spawn(reader::read::<B::Reader>(
-                *node_idx,
-                reader,
-                rx_readers_control.resubscribe(),
-                tx_incoming_reads.clone(),
-                read_grace,
-            ));
-        }
+    for (node_idx, reader) in read_accesses.into_iter() {
+        log::info!("Starting reader for node {}", node_idx);
+        read_indices.insert(node_idx);
+        spawn(reader::read::<B::Reader>(
+            node_idx,
+            reader,
+            rx_readers_control.resubscribe(),
+            tx_incoming_reads.clone(),
+            read_grace,
+        ));
     }
     read_indices
 }
@@ -492,17 +489,17 @@ fn update_op_stat(
 }
 
 fn update_stat(stat: &mut Stat, now: Instant, duration_nanos: u64) {
-    increment_histogram(&mut stat.histogram, duration_nanos);
+    increment_histogram(&mut stat.histogram, duration_nanos / 1000);
     stat.counter.count += 1;
     stat.counter.now = now;
 }
 
-fn increment_histogram(histo: &mut Histogram, elapsed_nanos: u64) {
-    match histo.increment(elapsed_nanos, 1) {
+fn increment_histogram(histo: &mut Histogram, elapsed_micros: u64) {
+    match histo.increment(elapsed_micros, 1) {
         Ok(_) => {}
         Err(_) => log::error!(
-            "Internal error: cannot increment histogram for {}",
-            elapsed_nanos
+            "Internal error: cannot increment histogram for {} micros",
+            elapsed_micros
         ),
     }
 }
