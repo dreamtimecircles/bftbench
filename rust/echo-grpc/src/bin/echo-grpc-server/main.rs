@@ -139,18 +139,21 @@ async fn main() -> Result<()> {
 
     let config = settings.try_deserialize::<ServerConfig>()?;
 
+    let program_name = args().next().unwrap();
     log::info!(
         "'{}' starting, configuration loaded: {:?}",
-        args().next().unwrap(),
+        program_name,
         config
     );
 
     let server = EchoServer {};
-    Server::builder()
+    let awaiter = Server::builder()
         .add_service(pb::service_server::ServiceServer::new(server))
-        .serve(config.listen.to_socket_addrs().unwrap().next().unwrap())
-        .await
-        .unwrap();
+        .serve(config.listen.to_socket_addrs().unwrap().next().unwrap());
+
+    log::info!("'{}' open for business", program_name);
+
+    awaiter.await.unwrap();
 
     Ok(())
 }

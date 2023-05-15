@@ -489,17 +489,17 @@ fn update_op_stat(
 }
 
 fn update_stat(stat: &mut Stat, now: Instant, duration_nanos: u64) {
-    increment_histogram(&mut stat.histogram, duration_nanos);
+    increment_histogram(&mut stat.histogram, duration_nanos / 1000);
     stat.counter.count += 1;
     stat.counter.now = now;
 }
 
-fn increment_histogram(histo: &mut Histogram, elapsed_nanos: u64) {
-    match histo.increment(elapsed_nanos, 1) {
+fn increment_histogram(histo: &mut Histogram, elapsed_micros: u64) {
+    match histo.increment(elapsed_micros, 1) {
         Ok(_) => {}
         Err(_) => log::error!(
-            "Internal error: cannot increment histogram for {}",
-            elapsed_nanos
+            "Internal error: cannot increment histogram for {} micros",
+            elapsed_micros
         ),
     }
 }

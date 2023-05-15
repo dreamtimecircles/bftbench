@@ -42,7 +42,7 @@ pub trait BftWriter: Send + Clone {
 /// of dishonest nodes.
 #[async_trait]
 pub trait BftReader: Send {
-    async fn read(&mut self) -> Result<Uuid>;
+    async fn read(&mut self) -> Result<Option<Uuid>>;
 }
 
 pub fn create_random_value(value_size: usize) -> Bytes {

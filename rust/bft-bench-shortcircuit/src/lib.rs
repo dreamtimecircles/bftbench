@@ -98,9 +98,9 @@ impl BftWriter for Writer {
 
 #[async_trait]
 impl BftReader for Reader {
-    async fn read(&mut self) -> Result<Uuid> {
+    async fn read(&mut self) -> Result<Option<Uuid>> {
         match self.receiver.recv().await {
-            Ok(uuid) => Ok(uuid),
+            Ok(uuid) => Ok(Some(uuid)),
             Err(error) => Err(BftError::dynamic(format!(
                 "Error receiving from the channel: {}",
                 error

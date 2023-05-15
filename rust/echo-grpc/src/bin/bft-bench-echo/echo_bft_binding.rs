@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use tokio::sync::mpsc::{channel, Sender};
 use tokio_stream::StreamExt;
 use tonic::Streaming;
-use uuid::Uuid;
+use uuid::{Bytes, Uuid};
 
 use bft_bench_core::{
     BftBinding, BftError, BftReader, BftWriter, Config, Node, NodeAccess, ReadWriteNode, Result,
@@ -96,13 +96,18 @@ impl BftWriter for Writer {
 
 #[async_trait]
 impl BftReader for Reader {
-    async fn read(&mut self) -> Result<Uuid> {
-        match self.response_stream.next().await.unwrap() {
-            Ok(tx) => Ok(Uuid::from_slice(&tx.tx_id).unwrap()),
-            Err(error) => Err(BftError::dynamic(format!(
+    async fn read(&mut self) -> Result<Option<Uuid>> {
+        match self.response_stream.next().await {
+            Some(Ok(tx)) => {
+                let mut arr: Bytes = [0u8; 16];
+                arr[..16].copy_from_slice(&tx.tx_id[..16]);
+                Ok(Some(Uuid::from_bytes_le(arr)))
+            }
+            Some(Err(error)) => Err(BftError::dynamic(format!(
                 "Error receiving from the stream: {}",
                 error
             ))),
+            None => Ok(None), // stream closed
         }
     }
 }

@@ -10,7 +10,7 @@ nanos=0
 
 [write_interval]
 secs=0
-nanos=2500
+nanos=33333
 
 [read_grace]
 secs=30
