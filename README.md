@@ -6,7 +6,7 @@ BFT libraries and platforms are often written in Rust, Go, C++ or a JVM language
 
 A lean integration is even more important for benchmarks, that should not introduce overhead and should thus avoid bridges.
 
-At the moment, only a [Rust version ](./rust/README.md) of the framework (with examples) is available.
+At the moment, only a [Rust version ](./rust) of the framework (with examples) is available.
 
 ## Docs
 
