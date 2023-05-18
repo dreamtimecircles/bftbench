@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CHANNEL_BUFFER_SIZE"],"fn":["unsupported"],"mod":["pb"],"struct":["EchoBftBinding","Reader","Writer"]};
