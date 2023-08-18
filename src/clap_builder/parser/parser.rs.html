@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clap_builder-4.2.7/src/parser/parser.rs`."><title>parser.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="clap_builder" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (e9e1bbc7a 2023-05-17)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../clap_builder/index.html"><img src="https://raw.githubusercontent.com/clap-rs/clap/master/assets/clap.png" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clap_builder-4.3.22/src/parser/parser.rs`."><title>parser.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="clap_builder" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0-nightly (076887268 2023-08-17)" data-channel="nightly" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../clap_builder/index.html"><img src="https://raw.githubusercontent.com/clap-rs/clap/master/assets/clap.png" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1611,14 +1611,6 @@
 <a href="#1611" id="1611">1611</a>
 <a href="#1612" id="1612">1612</a>
 <a href="#1613" id="1613">1613</a>
-<a href="#1614" id="1614">1614</a>
-<a href="#1615" id="1615">1615</a>
-<a href="#1616" id="1616">1616</a>
-<a href="#1617" id="1617">1617</a>
-<a href="#1618" id="1618">1618</a>
-<a href="#1619" id="1619">1619</a>
-<a href="#1620" id="1620">1620</a>
-<a href="#1621" id="1621">1621</a>
 </pre></div><pre class="rust"><code><span class="comment">// Std
 </span><span class="kw">use </span>std::{
     cell::Cell,
@@ -1709,7 +1701,7 @@
                 {
                     <span class="comment">// Does the arg match a subcommand name, or any of its aliases (if defined)
                     </span><span class="kw">let </span>sc_name = <span class="self">self</span>.possible_subcommand(arg_os.to_value(), valid_arg_found);
-                    <span class="macro">debug!</span>(<span class="string">&quot;Parser::get_matches_with: sc={:?}&quot;</span>, sc_name);
+                    <span class="macro">debug!</span>(<span class="string">&quot;Parser::get_matches_with: sc={sc_name:?}&quot;</span>);
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(sc_name) = sc_name {
                         <span class="kw">if </span>sc_name == <span class="string">&quot;help&quot; </span>&amp;&amp; !<span class="self">self</span>.cmd.is_disable_help_subcommand_set() {
                             <span class="macro">ok!</span>(<span class="self">self</span>.parse_help_subcommand(raw_args.remaining(<span class="kw-2">&amp;mut </span>args_cursor)));
@@ -1741,10 +1733,7 @@
                         pos_counter,
                         <span class="kw-2">&amp;mut </span>valid_arg_found,
                     ));
-                    <span class="macro">debug!</span>(
-                        <span class="string">&quot;Parser::get_matches_with: After parse_long_arg {:?}&quot;</span>,
-                        parse_result
-                    );
+                    <span class="macro">debug!</span>(<span class="string">&quot;Parser::get_matches_with: After parse_long_arg {parse_result:?}&quot;</span>);
                     <span class="kw">match </span>parse_result {
                         ParseResult::NoArg =&gt; {
                             <span class="macro">unreachable!</span>(<span class="string">&quot;`to_long` always has the flag specified&quot;</span>)
@@ -1814,10 +1803,7 @@
                         <span class="kw-2">&amp;mut </span>valid_arg_found,
                     ));
                     <span class="comment">// If it&#39;s None, we then check if one of those two AppSettings was set
-                    </span><span class="macro">debug!</span>(
-                        <span class="string">&quot;Parser::get_matches_with: After parse_short_arg {:?}&quot;</span>,
-                        parse_result
-                    );
+                    </span><span class="macro">debug!</span>(<span class="string">&quot;Parser::get_matches_with: After parse_short_arg {parse_result:?}&quot;</span>);
                     <span class="kw">match </span>parse_result {
                         ParseResult::NoArg =&gt; {
                             <span class="comment">// Is a single dash `-`, try positional.
@@ -1929,20 +1915,21 @@
                         .map(|p_name| !p_name.is_last_set())
                         .unwrap_or_default();
 
+                <span class="kw">let </span>is_terminated = <span class="self">self
+                    </span>.cmd
+                    .get_keymap()
+                    .get(<span class="kw-2">&amp;</span>pos_counter)
+                    .map(|a| a.get_value_terminator().is_some())
+                    .unwrap_or_default();
+
                 <span class="kw">let </span>missing_pos = <span class="self">self</span>.cmd.is_allow_missing_positional_set()
                     &amp;&amp; is_second_to_last
                     &amp;&amp; !trailing_values;
 
-                <span class="macro">debug!</span>(
-                    <span class="string">&quot;Parser::get_matches_with: Positional counter...{}&quot;</span>,
-                    pos_counter
-                );
-                <span class="macro">debug!</span>(
-                    <span class="string">&quot;Parser::get_matches_with: Low index multiples...{:?}&quot;</span>,
-                    low_index_mults
-                );
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::get_matches_with: Positional counter...{pos_counter}&quot;</span>);
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::get_matches_with: Low index multiples...{low_index_mults:?}&quot;</span>);
 
-                <span class="kw">if </span>low_index_mults || missing_pos {
+                <span class="kw">if </span>(low_index_mults || missing_pos) &amp;&amp; !is_terminated {
                     <span class="kw">let </span>skip_current = <span class="kw">if let </span><span class="prelude-val">Some</span>(n) = raw_args.peek(<span class="kw-2">&amp;</span>args_cursor) {
                         <span class="kw">if let </span><span class="prelude-val">Some</span>(arg) = <span class="self">self
                             </span>.cmd
@@ -2005,27 +1992,27 @@
                 <span class="kw">if </span>matcher.pending_arg_id() != <span class="prelude-val">Some</span>(arg.get_id()) || !arg.is_multiple_values_set() {
                     <span class="macro">ok!</span>(<span class="self">self</span>.resolve_pending(matcher));
                 }
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(_parse_result) = <span class="self">self</span>.check_terminator(arg, arg_os.to_value_os()) {
-                    <span class="macro">debug!</span>(
-                        <span class="string">&quot;Parser::get_matches_with: ignoring terminator result {:?}&quot;</span>,
-                        _parse_result
-                    );
-                } <span class="kw">else </span>{
-                    <span class="kw">let </span>arg_values = matcher.pending_values_mut(
-                        arg.get_id(),
-                        <span class="prelude-val">Some</span>(Identifier::Index),
-                        trailing_values,
-                    );
-                    arg_values.push(arg_os.to_value_os().to_owned());
-                }
+                parse_state =
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(parse_result) = <span class="self">self</span>.check_terminator(arg, arg_os.to_value_os()) {
+                        <span class="macro">debug_assert_eq!</span>(parse_result, ParseResult::ValuesDone);
+                        pos_counter += <span class="number">1</span>;
+                        ParseState::ValuesDone
+                    } <span class="kw">else </span>{
+                        <span class="kw">let </span>arg_values = matcher.pending_values_mut(
+                            arg.get_id(),
+                            <span class="prelude-val">Some</span>(Identifier::Index),
+                            trailing_values,
+                        );
+                        arg_values.push(arg_os.to_value_os().to_owned());
 
-                <span class="comment">// Only increment the positional counter if it doesn&#39;t allow multiples
-                </span><span class="kw">if </span>!arg.is_multiple() {
-                    pos_counter += <span class="number">1</span>;
-                    parse_state = ParseState::ValuesDone;
-                } <span class="kw">else </span>{
-                    parse_state = ParseState::Pos(arg.get_id().clone());
-                }
+                        <span class="comment">// Only increment the positional counter if it doesn&#39;t allow multiples
+                        </span><span class="kw">if </span>!arg.is_multiple() {
+                            pos_counter += <span class="number">1</span>;
+                            ParseState::ValuesDone
+                        } <span class="kw">else </span>{
+                            ParseState::Pos(arg.get_id().clone())
+                        }
+                    };
                 valid_arg_found = <span class="bool-val">true</span>;
             } <span class="kw">else if let </span><span class="prelude-val">Some</span>(external_parser) =
                 <span class="self">self</span>.cmd.get_external_subcommand_value_parser().cloned()
@@ -2107,6 +2094,10 @@
             }
         }
 
+        <span class="kw">let </span>suggested_trailing_arg = !trailing_values
+            &amp;&amp; <span class="self">self</span>.cmd.has_positionals()
+            &amp;&amp; (arg_os.is_long() || arg_os.is_short());
+
         <span class="kw">if </span>!(<span class="self">self</span>.cmd.is_args_conflicts_with_subcommands_set() &amp;&amp; valid_arg_found) {
             <span class="kw">let </span>candidates = suggestions::did_you_mean(
                 <span class="kw-2">&amp;</span>arg_os.display().to_string(),
@@ -2122,6 +2113,7 @@
                         .get_bin_name()
                         .unwrap_or_else(|| <span class="self">self</span>.cmd.get_name())
                         .to_owned(),
+                    suggested_trailing_arg,
                     Usage::new(<span class="self">self</span>.cmd).create_usage_with_title(<span class="kw-2">&amp;</span>[]),
                 );
             }
@@ -2138,9 +2130,6 @@
             }
         }
 
-        <span class="kw">let </span>suggested_trailing_arg = !trailing_values
-            &amp;&amp; <span class="self">self</span>.cmd.has_positionals()
-            &amp;&amp; (arg_os.is_long() || arg_os.is_short());
         ClapError::unknown_argument(
             <span class="self">self</span>.cmd,
             arg_os.display().to_string(),
@@ -2156,7 +2145,7 @@
         arg: <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>OsStr&gt;,
         valid_arg_found: bool,
     ) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;Parser::possible_subcommand: arg={:?}&quot;</span>, arg);
+        <span class="macro">debug!</span>(<span class="string">&quot;Parser::possible_subcommand: arg={arg:?}&quot;</span>);
         <span class="kw">let </span>arg = <span class="macro">some!</span>(arg.ok());
 
         <span class="kw">if </span>!(<span class="self">self</span>.cmd.is_args_conflicts_with_subcommands_set() &amp;&amp; valid_arg_found) {
@@ -2185,7 +2174,7 @@
 
     <span class="comment">// Checks if the arg matches a long flag subcommand name, or any of its aliases (if defined)
     </span><span class="kw">fn </span>possible_long_flag_subcommand(<span class="kw-2">&amp;</span><span class="self">self</span>, arg: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;Parser::possible_long_flag_subcommand: arg={:?}&quot;</span>, arg);
+        <span class="macro">debug!</span>(<span class="string">&quot;Parser::possible_long_flag_subcommand: arg={arg:?}&quot;</span>);
         <span class="kw">if </span><span class="self">self</span>.cmd.is_infer_subcommands_set() {
             <span class="kw">let </span>options = <span class="self">self
                 </span>.cmd
@@ -2308,10 +2297,7 @@
                 }
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = p.get_matches_with(<span class="kw-2">&amp;mut </span>sc_matcher, raw_args, args_cursor) {
                     <span class="kw">if </span>partial_parsing_enabled {
-                        <span class="macro">debug!</span>(
-                            <span class="string">&quot;Parser::parse_subcommand: ignored error in subcommand {}: {:?}&quot;</span>,
-                            sc_name, error
-                        );
+                        <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_subcommand: ignored error in subcommand {sc_name}: {error:?}&quot;</span>);
                     } <span class="kw">else </span>{
                         <span class="kw">return </span><span class="prelude-val">Err</span>(error);
                     }
@@ -2362,10 +2348,10 @@
         }
 
         <span class="kw">let </span>arg = <span class="kw">if let </span><span class="prelude-val">Some</span>(arg) = <span class="self">self</span>.cmd.get_keymap().get(long_arg) {
-            <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_long_arg: Found valid arg or flag &#39;{}&#39;&quot;</span>, arg);
+            <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_long_arg: Found valid arg or flag &#39;{arg}&#39;&quot;</span>);
             <span class="prelude-val">Some</span>((long_arg, arg))
         } <span class="kw">else if </span><span class="self">self</span>.cmd.is_infer_long_args_set() {
-            <span class="self">self</span>.cmd.get_arguments().find_map(|a| {
+            <span class="kw">let </span><span class="kw-2">mut </span>iter = <span class="self">self</span>.cmd.get_arguments().filter_map(|a| {
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(long) = a.get_long() {
                     <span class="kw">if </span>long.starts_with(long_arg) {
                         <span class="kw">return </span><span class="prelude-val">Some</span>((long, a));
@@ -2374,7 +2360,9 @@
                 a.aliases
                     .iter()
                     .find_map(|(alias, <span class="kw">_</span>)| alias.starts_with(long_arg).then(|| (alias.as_str(), a)))
-            })
+            });
+
+            iter.next().filter(|<span class="kw">_</span>| iter.next().is_none())
         } <span class="kw">else </span>{
             <span class="prelude-val">None
         </span>};
@@ -2391,10 +2379,7 @@
                 <span class="self">self</span>.parse_opt_value(ident, long_value, arg, matcher, has_eq)
             } <span class="kw">else if let </span><span class="prelude-val">Some</span>(rest) = long_value {
                 <span class="kw">let </span>required = <span class="self">self</span>.cmd.required_graph();
-                <span class="macro">debug!</span>(
-                    <span class="string">&quot;Parser::parse_long_arg({:?}): Got invalid literal `{:?}`&quot;</span>,
-                    long_arg, rest
-                );
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_long_arg({long_arg:?}): Got invalid literal `{rest:?}`&quot;</span>);
                 <span class="kw">let </span><span class="kw-2">mut </span>used: Vec&lt;Id&gt; = matcher
                     .arg_ids()
                     .filter(|arg_id| {
@@ -2416,7 +2401,7 @@
                     arg: arg.to_string(),
                 })
             } <span class="kw">else </span>{
-                <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_long_arg({:?}): Presence validated&quot;</span>, long_arg);
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_long_arg({long_arg:?}): Presence validated&quot;</span>);
                 <span class="kw">let </span>trailing_idx = <span class="prelude-val">None</span>;
                 <span class="self">self</span>.react(
                     <span class="prelude-val">Some</span>(ident),
@@ -2436,10 +2421,7 @@
             .map(|arg| arg.is_allow_hyphen_values_set() &amp;&amp; !arg.is_last_set())
             .unwrap_or_default()
         {
-            <span class="macro">debug!</span>(
-                <span class="string">&quot;Parser::parse_long_args: positional at {} allows hyphens&quot;</span>,
-                pos_counter
-            );
+            <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_long_args: positional at {pos_counter} allows hyphens&quot;</span>);
             <span class="prelude-val">Ok</span>(ParseResult::MaybeHyphenValue)
         } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(ParseResult::NoMatchingArg {
@@ -2457,7 +2439,7 @@
         </span>pos_counter: usize,
         valid_arg_found: <span class="kw-2">&amp;mut </span>bool,
     ) -&gt; ClapResult&lt;ParseResult&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_arg: short_arg={:?}&quot;</span>, short_arg);
+        <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_arg: short_arg={short_arg:?}&quot;</span>);
 
         <span class="attr">#[allow(clippy::blocks_in_if_conditions)]
         </span><span class="kw">if </span><span class="macro">matches!</span>(parse_state, ParseState::Opt(opt) | ParseState::Pos(opt)
@@ -2485,10 +2467,7 @@
                 .clone()
                 .any(|c| !c.map(|c| <span class="self">self</span>.cmd.contains_short(c)).unwrap_or_default())
         {
-            <span class="macro">debug!</span>(
-                <span class="string">&quot;Parser::parse_short_args: positional at {} allows hyphens&quot;</span>,
-                pos_counter
-            );
+            <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_args: positional at {pos_counter} allows hyphens&quot;</span>);
             <span class="kw">return </span><span class="prelude-val">Ok</span>(ParseResult::MaybeHyphenValue);
         }
 
@@ -2511,7 +2490,7 @@
                     });
                 }
             };
-            <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_arg:iter:{}&quot;</span>, c);
+            <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_arg:iter:{c}&quot;</span>);
 
             <span class="comment">// Check for matching short options, and return the name if there is no trailing
             // concatenated value: -oval
@@ -2519,10 +2498,7 @@
             // Value: val
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(arg) = <span class="self">self</span>.cmd.get_keymap().get(<span class="kw-2">&amp;</span>c) {
                 <span class="kw">let </span>ident = Identifier::Short;
-                <span class="macro">debug!</span>(
-                    <span class="string">&quot;Parser::parse_short_arg:iter:{}: Found valid opt or flag&quot;</span>,
-                    c
-                );
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_arg:iter:{c}: Found valid opt or flag&quot;</span>);
                 <span class="kw-2">*</span>valid_arg_found = <span class="bool-val">true</span>;
                 <span class="kw">if </span>!arg.is_takes_value_set() {
                     <span class="kw">let </span>arg_values = Vec::new();
@@ -2542,10 +2518,7 @@
                 //
                 // Cloning the iterator, so we rollback if it isn&#39;t there.
                 </span><span class="kw">let </span>val = short_arg.clone().next_value_os().unwrap_or_default();
-                <span class="macro">debug!</span>(
-                    <span class="string">&quot;Parser::parse_short_arg:iter:{}: val={:?}, short_arg={:?}&quot;</span>,
-                    c, val, short_arg
-                );
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_arg:iter:{c}: val={val:?}, short_arg={short_arg:?}&quot;</span>);
                 <span class="kw">let </span>val = <span class="prelude-val">Some</span>(val).filter(|v| !v.is_empty());
 
                 <span class="comment">// Default to &quot;we&#39;re expecting a value later&quot;.
@@ -2567,7 +2540,7 @@
             }
 
             <span class="kw">return if let </span><span class="prelude-val">Some</span>(sc_name) = <span class="self">self</span>.cmd.find_short_subcmd(c) {
-                <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_arg:iter:{}: subcommand={}&quot;</span>, c, sc_name);
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::parse_short_arg:iter:{c}: subcommand={sc_name}&quot;</span>);
                 <span class="comment">// Make sure indices get updated before reading `self.cur_idx`
                 </span><span class="macro">ok!</span>(<span class="self">self</span>.resolve_pending(matcher));
                 <span class="self">self</span>.cur_idx.set(<span class="self">self</span>.cur_idx.get() + <span class="number">1</span>);
@@ -2674,7 +2647,7 @@
         raw_vals: Vec&lt;OsString&gt;,
         matcher: <span class="kw-2">&amp;mut </span>ArgMatcher,
     ) -&gt; ClapResult&lt;()&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;Parser::push_arg_values: {:?}&quot;</span>, raw_vals);
+        <span class="macro">debug!</span>(<span class="string">&quot;Parser::push_arg_values: {raw_vals:?}&quot;</span>);
 
         <span class="kw">for </span>raw_val <span class="kw">in </span>raw_vals {
             <span class="comment">// update the current index because each value is a distinct index to clap
@@ -2883,7 +2856,17 @@
                     <span class="prelude-val">Some</span>(Identifier::Index) =&gt; <span class="bool-val">true</span>,
                     <span class="prelude-val">None </span>=&gt; <span class="bool-val">true</span>,
                 };
-                <span class="macro">debug!</span>(<span class="string">&quot;Help: use_long={}&quot;</span>, use_long);
+                <span class="macro">debug!</span>(<span class="string">&quot;Help: use_long={use_long}&quot;</span>);
+                <span class="prelude-val">Err</span>(<span class="self">self</span>.help_err(use_long))
+            }
+            ArgAction::HelpShort =&gt; {
+                <span class="kw">let </span>use_long = <span class="bool-val">false</span>;
+                <span class="macro">debug!</span>(<span class="string">&quot;Help: use_long={use_long}&quot;</span>);
+                <span class="prelude-val">Err</span>(<span class="self">self</span>.help_err(use_long))
+            }
+            ArgAction::HelpLong =&gt; {
+                <span class="kw">let </span>use_long = <span class="bool-val">true</span>;
+                <span class="macro">debug!</span>(<span class="string">&quot;Help: use_long={use_long}&quot;</span>);
                 <span class="prelude-val">Err</span>(<span class="self">self</span>.help_err(use_long))
             }
             ArgAction::Version =&gt; {
@@ -2893,7 +2876,7 @@
                     <span class="prelude-val">Some</span>(Identifier::Index) =&gt; <span class="bool-val">true</span>,
                     <span class="prelude-val">None </span>=&gt; <span class="bool-val">true</span>,
                 };
-                <span class="macro">debug!</span>(<span class="string">&quot;Version: use_long={}&quot;</span>, use_long);
+                <span class="macro">debug!</span>(<span class="string">&quot;Version: use_long={use_long}&quot;</span>);
                 <span class="prelude-val">Err</span>(<span class="self">self</span>.version_err(use_long))
             }
         }
@@ -2958,7 +2941,7 @@
     <span class="kw">fn </span>remove_overrides(<span class="kw-2">&amp;</span><span class="self">self</span>, arg: <span class="kw-2">&amp;</span>Arg, matcher: <span class="kw-2">&amp;mut </span>ArgMatcher) {
         <span class="macro">debug!</span>(<span class="string">&quot;Parser::remove_overrides: id={:?}&quot;</span>, arg.id);
         <span class="kw">for </span>override_id <span class="kw">in </span><span class="kw-2">&amp;</span>arg.overrides {
-            <span class="macro">debug!</span>(<span class="string">&quot;Parser::remove_overrides:iter:{:?}: removing&quot;</span>, override_id);
+            <span class="macro">debug!</span>(<span class="string">&quot;Parser::remove_overrides:iter:{override_id:?}: removing&quot;</span>);
             matcher.remove(override_id);
         }
 
@@ -2972,7 +2955,7 @@
             }
         }
         <span class="kw">for </span>overrider_id <span class="kw">in </span>transitive {
-            <span class="macro">debug!</span>(<span class="string">&quot;Parser::remove_overrides:iter:{:?}: removing&quot;</span>, overrider_id);
+            <span class="macro">debug!</span>(<span class="string">&quot;Parser::remove_overrides:iter:{overrider_id:?}: removing&quot;</span>);
             matcher.remove(overrider_id);
         }
     }
@@ -2985,13 +2968,13 @@
             <span class="comment">// Use env only if the arg was absent among command line args,
             // early return if this is not the case.
             </span><span class="kw">if </span>matcher.contains(<span class="kw-2">&amp;</span>arg.id) {
-                <span class="macro">debug!</span>(<span class="string">&quot;Parser::add_env: Skipping existing arg `{}`&quot;</span>, arg);
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::add_env: Skipping existing arg `{arg}`&quot;</span>);
                 <span class="kw">continue</span>;
             }
 
-            <span class="macro">debug!</span>(<span class="string">&quot;Parser::add_env: Checking arg `{}`&quot;</span>, arg);
+            <span class="macro">debug!</span>(<span class="string">&quot;Parser::add_env: Checking arg `{arg}`&quot;</span>);
             <span class="kw">if let </span><span class="prelude-val">Some</span>((<span class="kw">_</span>, <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>val))) = arg.env {
-                <span class="macro">debug!</span>(<span class="string">&quot;Parser::add_env: Found an opt with value={:?}&quot;</span>, val);
+                <span class="macro">debug!</span>(<span class="string">&quot;Parser::add_env: Found an opt with value={val:?}&quot;</span>);
                 <span class="kw">let </span>arg_values = <span class="macro">vec!</span>[val.to_owned()];
                 <span class="kw">let </span>trailing_idx = <span class="prelude-val">None</span>;
                 <span class="kw">let _ </span>= <span class="macro">ok!</span>(<span class="self">self</span>.react(
@@ -3125,7 +3108,7 @@
         remaining_args: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>OsStr],
         trailing_values: bool,
     ) -&gt; ClapError {
-        <span class="macro">debug!</span>(<span class="string">&quot;Parser::did_you_mean_error: arg={}&quot;</span>, arg);
+        <span class="macro">debug!</span>(<span class="string">&quot;Parser::did_you_mean_error: arg={arg}&quot;</span>);
         <span class="comment">// Didn&#39;t match a flag or option
         </span><span class="kw">let </span>longs = <span class="self">self
             </span>.cmd
@@ -3136,7 +3119,7 @@
                 <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
             })
             .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-        <span class="macro">debug!</span>(<span class="string">&quot;Parser::did_you_mean_error: longs={:?}&quot;</span>, longs);
+        <span class="macro">debug!</span>(<span class="string">&quot;Parser::did_you_mean_error: longs={longs:?}&quot;</span>);
 
         <span class="kw">let </span>did_you_mean = suggestions::did_you_mean_flag(
             arg,
@@ -3151,6 +3134,7 @@
                 <span class="self">self</span>.start_custom_arg(matcher, arg, ValueSource::CommandLine);
             }
         }
+        <span class="kw">let </span>did_you_mean = did_you_mean.map(|(arg, cmd)| (<span class="macro">format!</span>(<span class="string">&quot;--{arg}&quot;</span>), cmd));
 
         <span class="kw">let </span>required = <span class="self">self</span>.cmd.required_graph();
         <span class="kw">let </span>used: Vec&lt;Id&gt; = matcher

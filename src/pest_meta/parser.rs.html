@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_meta-2.6.0/src/parser.rs`."><title>parser.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="pest_meta" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0-nightly (e9e1bbc7a 2023-05-17)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-6f6ffb5395b17c6e.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/pest-parser/pest/master/pest-logo.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../pest_meta/index.html"><img src="https://raw.githubusercontent.com/pest-parser/pest/master/pest-logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/pest_meta-2.7.2/src/parser.rs`."><title>parser.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-cb6f1f67f1bcd037.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="pest_meta" data-themes="" data-resource-suffix="" data-rustdoc-version="1.73.0-nightly (076887268 2023-08-17)" data-channel="nightly" data-search-js="search-6dfdfced5eff6596.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-1596385f77d47ef2.css" data-theme-dark-css="dark-0a43001d3fc2282c.css" data-theme-ayu-css="ayu-fd19013d6ce078bf.css" ><script src="../../static.files/storage-db41da1a38ea3cb8.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-1596385f77d47ef2.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-0a43001d3fc2282c.css"><link rel="stylesheet" href="../../static.files/noscript-cffde32267a19fd6.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/pest-parser/pest/master/pest-logo.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../pest_meta/index.html"><img src="https://raw.githubusercontent.com/pest-parser/pest/master/pest-logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1768,6 +1768,16 @@
 <a href="#1768" id="1768">1768</a>
 <a href="#1769" id="1769">1769</a>
 <a href="#1770" id="1770">1770</a>
+<a href="#1771" id="1771">1771</a>
+<a href="#1772" id="1772">1772</a>
+<a href="#1773" id="1773">1773</a>
+<a href="#1774" id="1774">1774</a>
+<a href="#1775" id="1775">1775</a>
+<a href="#1776" id="1776">1776</a>
+<a href="#1777" id="1777">1777</a>
+<a href="#1778" id="1778">1778</a>
+<a href="#1779" id="1779">1779</a>
+<a href="#1780" id="1780">1780</a>
 </pre></div><pre class="rust"><code><span class="comment">// pest. The Elegant Parser
 // Copyright (c) 2018 Dragoș Tiselice
 //
@@ -1790,10 +1800,13 @@
 <span class="kw">use </span><span class="kw">crate</span>::ast::{Expr, Rule <span class="kw">as </span>AstRule, RuleType};
 <span class="kw">use </span><span class="kw">crate</span>::validator;
 
-<span class="doccomment">/// TODO: fix the generator to at least add explicit lifetimes
-</span><span class="attr">#[allow(missing_docs, unused_qualifications)]
+<span class="attr">#[allow(missing_docs, unused_qualifications)]
 </span><span class="kw">mod </span>grammar {
-    <span class="macro">include!</span>(<span class="string">&quot;grammar.rs&quot;</span>);
+    <span class="attr">#[cfg(not(feature = <span class="string">&quot;not-bootstrap-in-src&quot;</span>))]
+    </span><span class="macro">include!</span>(<span class="string">&quot;grammar.rs&quot;</span>);
+
+    <span class="attr">#[cfg(feature = <span class="string">&quot;not-bootstrap-in-src&quot;</span>)]
+    </span><span class="macro">include!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;OUT_DIR&quot;</span>), <span class="string">&quot;/__pest_grammar.rs&quot;</span>));
 }
 
 <span class="kw">pub use </span><span class="self">self</span>::grammar::<span class="kw-2">*</span>;
@@ -1841,8 +1854,7 @@
             }
 
             <span class="kw">match </span>node.expr {
-                <span class="comment">// TODO: Use box syntax when it gets stabilized.
-                </span>ParserExpr::PosPred(node) =&gt; {
+                ParserExpr::PosPred(node) =&gt; {
                     filter_internal(<span class="kw-2">*</span>node, f, result);
                 }
                 ParserExpr::NegPred(node) =&gt; {
@@ -1930,6 +1942,7 @@
     <span class="doccomment">/// Matches an expression and pushes it to the stack, e.g. `push(e)`
     </span>Push(Box&lt;ParserNode&lt;<span class="lifetime">&#39;i</span>&gt;&gt;),
     <span class="doccomment">/// Matches an expression and assigns a label to it, e.g. #label = exp
+    </span><span class="attr">#[cfg(feature = <span class="string">&quot;grammar-extras&quot;</span>)]
     </span>NodeTag(Box&lt;ParserNode&lt;<span class="lifetime">&#39;i</span>&gt;&gt;, String),
 }
 
@@ -1966,7 +1979,8 @@
             Expr::RepMinMax(Box::new(convert_node(<span class="kw-2">*</span>node)), min, max)
         }
         ParserExpr::Push(node) =&gt; Expr::Push(Box::new(convert_node(<span class="kw-2">*</span>node))),
-        ParserExpr::NodeTag(node, tag) =&gt; Expr::NodeTag(Box::new(convert_node(<span class="kw-2">*</span>node)), tag),
+        <span class="attr">#[cfg(feature = <span class="string">&quot;grammar-extras&quot;</span>)]
+        </span>ParserExpr::NodeTag(node, tag) =&gt; Expr::NodeTag(Box::new(convert_node(<span class="kw-2">*</span>node)), tag),
     }
 }
 
@@ -2104,7 +2118,10 @@
         <span class="kw-2">mut </span>pairs: Peekable&lt;Pairs&lt;<span class="lifetime">&#39;i</span>, Rule&gt;&gt;,
         pratt: <span class="kw-2">&amp;</span>PrattParser&lt;Rule&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;ParserNode&lt;<span class="lifetime">&#39;i</span>&gt;, Vec&lt;Error&lt;Rule&gt;&gt;&gt; {
-        <span class="kw">let </span>(pair, tag_start) = get_node_tag(<span class="kw-2">&amp;mut </span>pairs);
+        <span class="attr">#[cfg(feature = <span class="string">&quot;grammar-extras&quot;</span>)]
+        </span><span class="kw">let </span>(pair, tag_start) = get_node_tag(<span class="kw-2">&amp;mut </span>pairs);
+        <span class="attr">#[cfg(not(feature = <span class="string">&quot;grammar-extras&quot;</span>))]
+        </span><span class="kw">let </span>(pair, _tag_start) = get_node_tag(<span class="kw-2">&amp;mut </span>pairs);
 
         <span class="kw">let </span>node = <span class="kw">match </span>pair.as_rule() {
             Rule::opening_paren =&gt; {
@@ -2399,7 +2416,8 @@
                 )<span class="question-mark">?
             </span>}
         };
-        <span class="kw">if let </span><span class="prelude-val">Some</span>((tag, start)) = tag_start {
+        <span class="attr">#[cfg(feature = <span class="string">&quot;grammar-extras&quot;</span>)]
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>((tag, start)) = tag_start {
             <span class="kw">let </span>span = start.span(<span class="kw-2">&amp;</span>node.span.end_pos());
             <span class="prelude-val">Ok</span>(ParserNode {
                 expr: ParserExpr::NodeTag(Box::new(node), tag),
@@ -2408,6 +2426,8 @@
         } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(node)
         }
+        <span class="attr">#[cfg(not(feature = <span class="string">&quot;grammar-extras&quot;</span>))]
+        </span><span class="prelude-val">Ok</span>(node)
     }
 
     <span class="kw">let </span>term = |pair: Pair&lt;<span class="lifetime">&#39;i</span>, Rule&gt;| unaries(pair.into_inner().peekable(), pratt);
