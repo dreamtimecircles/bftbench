@@ -14,7 +14,7 @@ config = "0.13.3"
 env_logger = "0.10.0"
 h2 = "0.3.20"
 log = "0.4.19"
-prost = "0.11.9"
+prost = "0.12.1"
 serde = "1.0.171"
 serde_derive = "1.0.171"
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
