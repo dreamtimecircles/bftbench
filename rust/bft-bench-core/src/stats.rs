@@ -4,8 +4,6 @@ use std::{fmt::Display, time::Instant};
 use histogram::Histogram;
 use serde_derive::Serialize;
 
-const HISTOGRAM_MAX_VALUE: u64 = u32::MAX as u64;
-
 #[derive(Clone)]
 pub(crate) struct Counter {
     pub(crate) start: Instant,
@@ -192,10 +190,7 @@ impl Display for Reports {
 }
 
 fn new_default_histogram() -> Histogram {
-    Histogram::builder()
-        .maximum_value(HISTOGRAM_MAX_VALUE)
-        .build()
-        .unwrap()
+    Histogram::new(16, 32).unwrap()
 }
 
 fn mean(histogram: &Histogram) -> Option<u64> {
@@ -205,6 +200,6 @@ fn mean(histogram: &Histogram) -> Option<u64> {
 fn perc(percentile: f64, histogram: &Histogram) -> Option<u64> {
     histogram
         .percentile(percentile)
-        .map(|bucket| bucket.high())
+        .map(|bucket| bucket.end())
         .ok()
 }
