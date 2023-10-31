@@ -121,7 +121,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
             .await
             .expect("Cannot send benchmark completion request");
     });
-    config.report_interval.map_or((), |i| {
+    config.report_interval.map_or_else(|| (), |i| {
         spawn(async move {
             loop {
                 sleep(i).await;
