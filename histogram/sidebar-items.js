@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Error"],"struct":["Bucket","Builder","CompactHistogram","Histogram","Percentile"]};
+window.SIDEBAR_ITEMS = {"enum":["Error"],"struct":["AtomicHistogram","Bucket","Config","Histogram","Snapshot","SparseHistogram"]};
