@@ -495,7 +495,7 @@ fn update_stat(stat: &mut Stat, now: Instant, duration_nanos: u64) {
 }
 
 fn increment_histogram(histo: &mut Histogram, elapsed_micros: u64) {
-    match histo.increment(elapsed_micros, 1) {
+    match histo.increment(elapsed_micros) {
         Ok(_) => {}
         Err(_) => log::error!(
             "Internal error: cannot increment histogram for {} micros",
