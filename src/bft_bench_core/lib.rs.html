@@ -507,6 +507,9 @@
 <a href="#507" id="507">507</a>
 <a href="#508" id="508">508</a>
 <a href="#509" id="509">509</a>
+<a href="#510" id="510">510</a>
+<a href="#511" id="511">511</a>
+<a href="#512" id="512">512</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! A BFT library and platform benchmarking framework.
 
 </span><span class="kw">use </span>std::collections::{HashMap, HashSet};
@@ -630,17 +633,20 @@
             .<span class="kw">await
             </span>.expect(<span class="string">&quot;Cannot send benchmark completion request&quot;</span>);
     });
-    config.report_interval.map_or((), |i| {
-        spawn(<span class="kw">async move </span>{
-            <span class="kw">loop </span>{
-                sleep(i).<span class="kw">await</span>;
-                <span class="kw">if </span>tx_report_periodic.send(<span class="bool-val">false</span>).<span class="kw">await</span>.is_err() {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;Report channel closed, stopping periodic report&quot;</span>);
-                    <span class="kw">break</span>;
+    config.report_interval.map_or_else(
+        || (),
+        |i| {
+            spawn(<span class="kw">async move </span>{
+                <span class="kw">loop </span>{
+                    sleep(i).<span class="kw">await</span>;
+                    <span class="kw">if </span>tx_report_periodic.send(<span class="bool-val">false</span>).<span class="kw">await</span>.is_err() {
+                        <span class="macro">log::debug!</span>(<span class="string">&quot;Report channel closed, stopping periodic report&quot;</span>);
+                        <span class="kw">break</span>;
+                    }
                 }
-            }
-        });
-    });
+            });
+        },
+    );
 
     <span class="kw">loop </span>{
         <span class="macro">tokio::select! </span>{
