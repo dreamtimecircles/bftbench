@@ -10,11 +10,13 @@ At the moment, only a [Rust version](./rust) of the framework (with examples) is
 
 ## Docs
 
-The `rustdoc` reference including an index can be found at the [GitHub Pages site]; look for the relevant modules, at the moment [`bft-bench-core`], [`bft-bench-shortcircuit`] and [`echo-grpc`].
+The `rustdoc` reference including an index can be found at the [GitHub Pages site]; look for the relevant modules, at the moment [`bft-bench-core`], [`bft-bench-shortcircuit`], [`bft-bench-echo`] and [`echo-grpc-server`].
 
 [GitHub Pages site]: https://dreamtimecircles.github.io/bftbench
 [`bft-bench-core`]: https://dreamtimecircles.github.io/bftbench/bft_bench_core
 [`bft-bench-shortcircuit`]: https://dreamtimecircles.github.io/bftbench/bft_bench_shortcircuit
+[`bft-bench-echo`]: https://dreamtimecircles.github.io/bftbench/bft_bench_echo
+[`echo-grpc-server`]: https://dreamtimecircles.github.io/bftbench/echo_grpc_server
 
 ## Development
 
