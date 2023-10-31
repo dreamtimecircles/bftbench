@@ -1,2 +1,3 @@
 [workspace]
 members = ["bft-bench-core", "bft-bench-shortcircuit", "echo-grpc"]
+resolver = "2"
