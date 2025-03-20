@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, mpsc};
 use uuid::Uuid;
 
-use crate::{worker::WorkerRequest, BftError, BftReader};
+use crate::{BftError, BftReader, worker::WorkerRequest};
 
 #[derive(Debug)]
 pub(crate) enum ReaderReply {

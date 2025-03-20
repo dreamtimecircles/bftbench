@@ -1,4 +1,4 @@
-//! A BFT library and platform benchmarking framework.
+//! A benchmarking framework geared towards BFT ordering libraries and platforms.
 
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
@@ -121,7 +121,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
             .await
             .expect("Cannot send benchmark completion request");
     });
-    config.report_interval.map_or((), |i| {
+    let _ = config.report_interval.map_or((), |i| {
         spawn(async move {
             loop {
                 sleep(i).await;
@@ -495,7 +495,7 @@ fn update_stat(stat: &mut Stat, now: Instant, duration_nanos: u64) {
 }
 
 fn increment_histogram(histo: &mut Histogram, elapsed_micros: u64) {
-    match histo.increment(elapsed_micros, 1) {
+    match histo.increment(elapsed_micros) {
         Ok(_) => {}
         Err(_) => log::error!(
             "Internal error: cannot increment histogram for {} micros",

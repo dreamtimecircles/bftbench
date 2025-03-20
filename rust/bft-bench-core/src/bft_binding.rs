@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use bytes::Bytes;
-use rand::RngCore;
+use rand::{RngCore, rngs::ThreadRng};
 use uuid::Uuid;
 
 use {crate::config::*, crate::result::*};
@@ -33,7 +33,7 @@ pub trait BftWriter: Send + Clone {
     async fn write(&mut self, key: Uuid) -> Result<()>;
 }
 
-/// A [`BftWriter`] allows to read a key from a node. A BFT library/platform is expected to
+/// A [`BftReader`] allows to read a key from a node. A BFT library/platform is expected to
 /// provide BFT ordering functionality, i.e., all nodes should provide a consistent ordering
 /// of written data to all readers, including when byzantine nodes are present.
 ///
@@ -45,9 +45,9 @@ pub trait BftReader: Send {
     async fn read(&mut self) -> Result<Option<Uuid>>;
 }
 
-pub fn create_random_value(value_size: usize) -> Bytes {
+pub fn create_random_value(rng: &mut ThreadRng, value_size: usize) -> Bytes {
     let mut value = vec![0u8; value_size];
-    rand::rngs::OsRng.fill_bytes(&mut value);
+    rng.fill_bytes(&mut value);
     log::debug!("Random value of size {} generated", value_size);
     Bytes::from(value)
 }
@@ -58,6 +58,7 @@ mod tests {
 
     #[test]
     fn test_create_value() {
-        assert_eq!(create_random_value(2).len(), 2)
+        let mut rng = rand::rng();
+        assert_eq!(create_random_value(&mut rng, 2).len(), 2)
     }
 }
