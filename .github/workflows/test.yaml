@@ -23,7 +23,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly # To use Z options
           override: true
       - name: Cache dependencies
         uses: actions/cache@v3
