@@ -190,7 +190,7 @@ impl Display for Reports {
 }
 
 fn new_default_histogram() -> Histogram {
-    Histogram::new(16, 32).unwrap()
+    Histogram::new(16, 64).unwrap()
 }
 
 fn mean(histogram: &Histogram) -> Option<u64> {
@@ -200,6 +200,8 @@ fn mean(histogram: &Histogram) -> Option<u64> {
 fn perc(percentile: f64, histogram: &Histogram) -> Option<u64> {
     histogram
         .percentile(percentile)
-        .map(|bucket| bucket.end())
-        .ok()
+        .iter()
+        .flat_map(|bucket| bucket.as_ref().map(|b| b.end()))
+        .collect::<Vec<_>>()
+        .pop()
 }

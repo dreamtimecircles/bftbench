@@ -117,10 +117,11 @@ async fn main() -> Result<()> {
             let ts = buf.timestamp_micros();
             writeln!(
                 buf,
-                "[{} {} {:?} {} {}:{}] {}",
+                "[{} {}{}{:#} {:?} {} {}:{}] {}",
                 ts,
-                buf.default_level_style(record.level())
-                    .value(record.level()),
+                buf.default_level_style(record.level()),
+                record.level(),
+                buf.default_level_style(record.level()),
                 std::thread::current().id(),
                 record.target(),
                 record.file().unwrap_or("<unknown>"),

@@ -1,6 +1,6 @@
 use async_stream::stream;
 use async_trait::async_trait;
-use tokio::sync::mpsc::{channel, Sender};
+use tokio::sync::mpsc::{Sender, channel};
 use tokio_stream::StreamExt;
 use tonic::Streaming;
 use uuid::{Bytes, Uuid};

@@ -1,7 +1,7 @@
 [package]
 name = "echo-grpc"
 version = "0.0.1"
-edition = "2021"
+edition = "2024"
 authors = ["Fabio Tudone <fabtud@gmail.com>"]
 
 [dependencies]
@@ -10,20 +10,20 @@ async-trait = "0.1.73"
 async-stream = "0.3.5"
 bft-bench-core = { path = "../bft-bench-core" }
 clap = { version = "4.4.5", features = ["derive"] }
-config = "0.13.3"
-env_logger = "0.10.0"
-h2 = "0.3.21"
+config = "0.15.11"
+env_logger = "0.11.7"
+h2 = "0.4.8"
 log = "0.4.20"
-prost = "0.12.1"
+prost = "0.13.5"
 serde = "1.0.188"
 serde_derive = "1.0.188"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tokio-stream = "0.1.14"
-tonic = "0.10.1"
+tonic = "0.12.3"
 uuid = { version = "1.4.1", features = ["v4"] }
 
 [build-dependencies]
-tonic-build = "0.10.1"
+tonic-build = "0.12.3"
 
 [[bin]]
 name = "echo-grpc-server"

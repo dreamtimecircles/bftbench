@@ -1,4 +1,4 @@
-//! A BFT library and platform benchmarking framework.
+//! A benchmarking framework geared towards BFT ordering libraries and platforms.
 
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
@@ -121,20 +121,17 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
             .await
             .expect("Cannot send benchmark completion request");
     });
-    config.report_interval.map_or_else(
-        || (),
-        |i| {
-            spawn(async move {
-                loop {
-                    sleep(i).await;
-                    if tx_report_periodic.send(false).await.is_err() {
-                        log::debug!("Report channel closed, stopping periodic report");
-                        break;
-                    }
+    let _ = config.report_interval.map_or((), |i| {
+        spawn(async move {
+            loop {
+                sleep(i).await;
+                if tx_report_periodic.send(false).await.is_err() {
+                    log::debug!("Report channel closed, stopping periodic report");
+                    break;
                 }
-            });
-        },
-    );
+            }
+        });
+    });
 
     loop {
         tokio::select! {

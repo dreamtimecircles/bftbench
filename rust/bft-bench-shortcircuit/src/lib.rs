@@ -8,7 +8,7 @@ use bft_bench_core::{
     BftBinding, BftError, BftReader, BftWriter, Config, Node, NodeAccess, NodeEndpoint,
     ReadWriteNode, Result, WriteNode,
 };
-use tokio::sync::broadcast::{channel, Receiver, Sender};
+use tokio::sync::broadcast::{Receiver, Sender, channel};
 
 const CHANNEL_BUFFER_SIZE: usize = 128 * 1024 * 1024;
 

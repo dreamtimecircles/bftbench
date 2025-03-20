@@ -6,7 +6,7 @@ use tokio::{
 };
 use uuid::Uuid;
 
-use crate::{worker::WorkerRequest, BftWriter};
+use crate::{BftWriter, worker::WorkerRequest};
 
 #[derive(Debug)]
 pub(crate) enum WriterReply {
