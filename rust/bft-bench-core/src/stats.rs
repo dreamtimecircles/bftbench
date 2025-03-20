@@ -190,8 +190,7 @@ impl Display for Reports {
 }
 
 fn new_default_histogram() -> Histogram {
-    let config = histogram::Config::new(7, 64).unwrap();
-    Histogram::with_config(&config)
+    Histogram::new(16, 64).unwrap()
 }
 
 fn mean(histogram: &Histogram) -> Option<u64> {
