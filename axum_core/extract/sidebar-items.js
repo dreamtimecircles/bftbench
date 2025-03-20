@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["rejection"],"struct":["DefaultBodyLimit"],"trait":["FromRef","FromRequest","FromRequestParts"]};
+window.SIDEBAR_ITEMS = {"mod":["rejection"],"struct":["DefaultBodyLimit"],"trait":["FromRef","FromRequest","FromRequestParts"],"type":["Request"]};

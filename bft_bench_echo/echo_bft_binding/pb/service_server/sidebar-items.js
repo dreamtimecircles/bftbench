@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ServiceServer","_Inner"],"trait":["Service"]};
+window.SIDEBAR_ITEMS = {"constant":["SERVICE_NAME"],"struct":["ServiceServer"],"trait":["Service"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["interceptor"],"mod":["interceptor"],"trait":["Interceptor"]};
+window.SIDEBAR_ITEMS = {"fn":["interceptor"],"mod":["interceptor"],"struct":["AxumBody","AxumRouter","Routes","RoutesBuilder"],"trait":["Interceptor"]};

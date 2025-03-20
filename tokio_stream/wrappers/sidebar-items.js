@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["errors"],"struct":["IntervalStream","ReceiverStream","UnboundedReceiverStream"]};
+window.SIDEBAR_ITEMS = {"mod":["errors"],"struct":["IntervalStream","ReceiverStream","TcpListenerStream","UnboundedReceiverStream","UnixListenerStream"]};

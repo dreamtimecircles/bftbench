@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["boxed"],"struct":["StreamBody"],"type":["BoxBody"]};
+window.SIDEBAR_ITEMS = {"fn":["to_bytes"],"struct":["Body","BodyDataStream"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["optional"],"struct":["AndThenFuture","MapErrFuture","MapResponseFuture","MapResultFuture","ThenFuture"]};
+window.SIDEBAR_ITEMS = {"mod":["optional"],"struct":["AndThenFuture","EitherResponseFuture","MapErrFuture","MapResponseFuture","MapResultFuture","ThenFuture"]};

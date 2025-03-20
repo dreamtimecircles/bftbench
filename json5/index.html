@@ -1,5 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="JSON5 is a superset of JSON with an expanded syntax including some productions from ECMAScript 5.1."><title>json5 - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="json5" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0-nightly (31bc7e2c4 2023-10-30)" data-channel="nightly" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../json5/index.html">json5</a><span class="version">0.4.1</span></h2></div><div class="sidebar-elems"><ul class="block">
-            <li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#functions">Functions</a></li><li><a href="#types">Type Aliases</a></li></ul></section></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">json5</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/json5/lib.rs.html#1-190">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>JSON5 is a superset of <a href="https://tools.ietf.org/html/rfc7159">JSON</a> with an expanded syntax including some productions from
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="JSON5 is a superset of JSON with an expanded syntax including some productions from ECMAScript 5.1."><title>json5 - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="json5" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0-nightly (1aeb99d24 2025-03-19)" data-channel="nightly" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../static.files/storage-d8ac8691.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../json5/index.html">json5</a><span class="version">0.4.1</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#deserialization" title="Deserialization">Deserialization</a></li><li><a href="#serialization" title="Serialization">Serialization</a></li><li><a href="#limitations" title="Limitations">Limitations</a></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>json5</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/json5/lib.rs.html#1-190">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>JSON5 is a superset of <a href="https://tools.ietf.org/html/rfc7159">JSON</a> with an expanded syntax including some productions from
 <a href="https://www.ecma-international.org/ecma-262/5.1/">ECMAScript 5.1</a>.</p>
 <p>In particular, JSON5 allows comments, trailing commas, object keys without quotes, single
 quoted strings and more. See the <a href="https://json5.org/">JSON5 project page</a> for full details.</p>
@@ -14,11 +13,10 @@ No \\n&#39;s!&quot;,
   positiveSign: +1,
   trailingComma: &#39;in objects&#39;, andIn: [&#39;arrays&#39;,],
   &quot;backwardsCompatible&quot;: &quot;with JSON&quot;,
-}
-</code></pre></div>
+}</code></pre></div>
 <p>This crate provides functions for deserializing JSON5 text into a Rust datatype and for
 serializing a Rust datatype as JSON5 text, both via the <a href="https://serde.rs/">Serde framework</a>.</p>
-<h2 id="deserialization"><a href="#deserialization">Deserialization</a></h2>
+<h2 id="deserialization"><a class="doc-anchor" href="#deserialization">§</a>Deserialization</h2>
 <p>Implementing Serde’s <a href="https://docs.serde.rs/serde/de/trait.Deserialize.html"><code>Deserialize</code></a> trait on your type will allow you to parse JSON5
 text into a value of that type with <a href="fn.from_str.html"><code>from_str</code></a>.</p>
 
@@ -30,20 +28,20 @@ text into a value of that type with <a href="fn.from_str.html"><code>from_str</c
     n: i32,
 }
 
-<span class="kw">let </span>config = <span class="string">&quot;
+<span class="kw">let </span>config = <span class="string">"
     {
       // A traditional message.
-      message: &#39;hello world&#39;,
+      message: 'hello world',
 
       // A number for some reason.
       n: 42,
     }
-&quot;</span>;
+"</span>;
 
 <span class="macro">assert_eq!</span>(
     json5::from_str(config),
     <span class="prelude-val">Ok</span>(Config {
-        message: <span class="string">&quot;hello world&quot;</span>.to_string(),
+        message: <span class="string">"hello world"</span>.to_string(),
         n: <span class="number">42</span>,
     }),
 );</code></pre></div>
@@ -52,27 +50,27 @@ text into a value of that type with <a href="fn.from_str.html"><code>from_str</c
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>json5;
 <span class="kw">use </span>serde_json::{Value, json};
 
-<span class="kw">let </span>config = <span class="string">&quot;
+<span class="kw">let </span>config = <span class="string">"
     {
       // A traditional message.
-      message: &#39;hello world&#39;,
+      message: 'hello world',
 
       // A number for some reason.
       n: 42,
     }
-&quot;</span>;
+"</span>;
 
 <span class="macro">assert_eq!</span>(
     json5::from_str::&lt;Value&gt;(<span class="kw-2">&amp;</span>config),
     <span class="prelude-val">Ok</span>(<span class="macro">json!</span>({
-        <span class="string">&quot;message&quot;</span>: <span class="string">&quot;hello world&quot;</span>,
-        <span class="string">&quot;n&quot;</span>: <span class="number">42
+        <span class="string">"message"</span>: <span class="string">"hello world"</span>,
+        <span class="string">"n"</span>: <span class="number">42
     </span>}))
 );</code></pre></div>
 <p>There are many ways to customize the deserialization (e.g. deserializing <code>camelCase</code> field
 names into a struct with <code>snake_case</code> fields). See the Serde docs, especially the
 <a href="https://serde.rs/attributes.html">Attributes</a>, <a href="https://serde.rs/custom-serialization.html">Custom serialization</a> and <a href="https://serde.rs/examples.html">Examples</a> sections.</p>
-<h2 id="serialization"><a href="#serialization">Serialization</a></h2>
+<h2 id="serialization"><a class="doc-anchor" href="#serialization">§</a>Serialization</h2>
 <p>Similarly, implementing <a href="https://docs.serde.rs/serde/ser/trait.Serialize.html"><code>Serialize</code></a> on a Rust type allows you to produce a JSON5
 serialization of values of that type with <a href="fn.to_string.html"><code>to_string</code></a>. At present the serializer will just
 produce JSON (since it’s a valid subset of JSON5), but future work will allow specifying the
@@ -93,48 +91,48 @@ output style (single over double quotes, trailing commas, indentation etc.).</p>
 }
 <span class="kw">let </span><span class="kw-2">mut </span>map = HashMap::new();
 map.insert(
-    <span class="string">&quot;a&quot;</span>.to_owned(),
+    <span class="string">"a"</span>.to_owned(),
     Val::Array(<span class="macro">vec!</span>[
         Val::Null,
         Val::Bool(<span class="bool-val">true</span>),
         Val::Number(<span class="number">42.</span>),
         Val::Number(<span class="number">42.42</span>),
         Val::Number(f64::NAN),
-        Val::String(<span class="string">&quot;hello&quot;</span>.to_owned()),
+        Val::String(<span class="string">"hello"</span>.to_owned()),
     ])
 );
 <span class="macro">assert_eq!</span>(
     json5::to_string(<span class="kw-2">&amp;</span>Val::Object(map)),
-    <span class="prelude-val">Ok</span>(<span class="string">&quot;{\&quot;a\&quot;:[null,true,42,42.42,NaN,\&quot;hello\&quot;]}&quot;</span>.to_owned()),
+    <span class="prelude-val">Ok</span>(<span class="string">"{\"a\":[null,true,42,42.42,NaN,\"hello\"]}"</span>.to_owned()),
 )</code></pre></div>
 <p>You could also build from serde_json</p>
 
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>serde_json::{json, Value, Map, Number};
 <span class="macro">assert_eq!</span>(
     json5::to_string(
-        <span class="kw-2">&amp;</span><span class="macro">json!</span>({<span class="string">&quot;a&quot;</span>: [null, <span class="bool-val">true</span>, <span class="number">42</span>, <span class="number">42.42</span>, f64::NAN, <span class="string">&quot;hello&quot;</span>]})
+        <span class="kw-2">&amp;</span><span class="macro">json!</span>({<span class="string">"a"</span>: [null, <span class="bool-val">true</span>, <span class="number">42</span>, <span class="number">42.42</span>, f64::NAN, <span class="string">"hello"</span>]})
     ),
-    <span class="prelude-val">Ok</span>(<span class="string">&quot;{\&quot;a\&quot;:[null,true,42,42.42,null,\&quot;hello\&quot;]}&quot;</span>.to_owned())
+    <span class="prelude-val">Ok</span>(<span class="string">"{\"a\":[null,true,42,42.42,null,\"hello\"]}"</span>.to_owned())
 );
 <span class="kw">let </span><span class="kw-2">mut </span>map = Map::new();
 map.insert(
-    <span class="string">&quot;a&quot;</span>.to_owned(),
+    <span class="string">"a"</span>.to_owned(),
     Value::Array(<span class="macro">vec!</span>[
         Value::Null,
         Value::Bool(<span class="bool-val">true</span>),
         Value::Number(Number::from_f64(<span class="number">42.</span>).unwrap()),
         Value::Number(Number::from_f64(<span class="number">42.42</span>).unwrap()),
-        Value::String(<span class="string">&quot;hello&quot;</span>.to_owned()),
+        Value::String(<span class="string">"hello"</span>.to_owned()),
     ])
 );
 <span class="macro">assert_eq!</span>(
     json5::to_string(<span class="kw-2">&amp;</span>Value::Object(map)),
-    <span class="prelude-val">Ok</span>(<span class="string">&quot;{\&quot;a\&quot;:[null,true,42,42.42,\&quot;hello\&quot;]}&quot;</span>.to_owned()),
+    <span class="prelude-val">Ok</span>(<span class="string">"{\"a\":[null,true,42,42.42,\"hello\"]}"</span>.to_owned()),
 )</code></pre></div>
 <p>There are many ways to customize the serialization (e.g. serializing <code>snake_case</code> struct fields
 as <code>camelCase</code>). See the Serde docs, especially the <a href="https://serde.rs/attributes.html">Attributes</a>, <a href="https://serde.rs/custom-serialization.html">Custom serialization</a>
 and <a href="https://serde.rs/examples.html">Examples</a> sections.</p>
-<h2 id="limitations"><a href="#limitations">Limitations</a></h2>
+<h2 id="limitations"><a class="doc-anchor" href="#limitations">§</a>Limitations</h2>
 <p>At the time of writing the following is unsupported:</p>
 <ul>
 <li>
@@ -148,7 +146,7 @@ and <a href="https://serde.rs/examples.html">Examples</a> sections.</p>
 commas, indentation etc.)</p>
 </li>
 </ul>
-</div></details><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.Deserializer.html" title="struct json5::Deserializer">Deserializer</a></div></li><li><div class="item-name"><a class="struct" href="struct.Location.html" title="struct json5::Location">Location</a></div><div class="desc docblock-short">One-based line and column at which the error was detected.</div></li></ul><h2 id="enums" class="small-section-header"><a href="#enums">Enums</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.Error.html" title="enum json5::Error">Error</a></div><div class="desc docblock-short">A bare bones error type which currently just collapses all the underlying errors in to a single
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Deserializer.html" title="struct json5::Deserializer">Deserializer</a></dt><dt><a class="struct" href="struct.Location.html" title="struct json5::Location">Location</a></dt><dd>One-based line and column at which the error was detected.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.Error.html" title="enum json5::Error">Error</a></dt><dd>A bare bones error type which currently just collapses all the underlying errors in to a single
 string… This is fine for displaying to the user, but not very useful otherwise. Work to be
-done here.</div></li></ul><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.from_str.html" title="fn json5::from_str">from_str</a></div><div class="desc docblock-short">Deserialize an instance of type <code>T</code> from a string of JSON5 text. Can fail if the input is
-invalid JSON5, or doesn’t match the structure of the target type.</div></li><li><div class="item-name"><a class="fn" href="fn.to_string.html" title="fn json5::to_string">to_string</a></div><div class="desc docblock-short">Attempts to serialize the input as a JSON5 string (actually a JSON string).</div></li></ul><h2 id="types" class="small-section-header"><a href="#types">Type Aliases</a></h2><ul class="item-table"><li><div class="item-name"><a class="type" href="type.Result.html" title="type json5::Result">Result</a></div><div class="desc docblock-short">Alias for a <code>Result</code> with error type <code>json5::Error</code></div></li></ul></section></div></main></body></html>
+done here.</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.from_str.html" title="fn json5::from_str">from_<wbr>str</a></dt><dd>Deserialize an instance of type <code>T</code> from a string of JSON5 text. Can fail if the input is
+invalid JSON5, or doesn’t match the structure of the target type.</dd><dt><a class="fn" href="fn.to_string.html" title="fn json5::to_string">to_<wbr>string</a></dt><dd>Attempts to serialize the input as a JSON5 string (actually a JSON string).</dd></dl><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><dl class="item-table"><dt><a class="type" href="type.Result.html" title="type json5::Result">Result</a></dt><dd>Alias for a <code>Result</code> with error type <code>json5::Error</code></dd></dl></section></div></main></body></html>
