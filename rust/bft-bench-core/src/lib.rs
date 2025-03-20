@@ -121,7 +121,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
             .await
             .expect("Cannot send benchmark completion request");
     });
-    let _ = config.report_interval.map_or((), |i| {
+    let periodic_report_awaiter = config.report_interval.map_or(spawn(async move {}), |i| {
         spawn(async move {
             loop {
                 sleep(i).await;
@@ -130,7 +130,7 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
                     break;
                 }
             }
-        });
+        })
     });
 
     loop {
@@ -156,6 +156,8 @@ pub async fn run<B: BftBinding + 'static>(config: Config, mut bft_binding: B) ->
             }
         }
     }
+
+    let _ = periodic_report_awaiter.await;
 
     Ok((&state.stats).into())
 }
