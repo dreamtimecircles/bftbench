@@ -40,22 +40,27 @@ jobs:
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
       - run: sudo apt install -y protobuf-compiler libprotobuf-dev
       - name: Run the short-circuit benchmark
+        shell: bash
         run: |
           cd rust
           cargo run --bin bft-bench-shortcircuit -- --config bft-bench-shortcircuit/Benchmark.example.toml
       - name: Generate test report
         id: test
+        shell: bash
         run: |
           cargo install cargo2junit
           cd rust
+          mkdir -p target/debug # Create the target directory for cargo2junit
           RUSTC_BOOTSTRAP=1 cargo test $CARGO_OPTIONS -- -Z unstable-options --format json --report-time | cargo2junit > ${TEST_REPORT_FILE}
           echo "report=rust/${TEST_REPORT_FILE}" >> $GITHUB_OUTPUT
       - name: Generate coverage report
         id: coverage
+        shell: bash
         run: |
           rustup component add llvm-tools-preview
           cargo install grcov
           cd rust
+          mkdir -p target/debug # Create the target directory for cargo2junit
           RUSTC_BOOTSTRAP=1 cargo test $CARGO_OPTIONS -- -Z unstable-options --format json --report-time | cargo2junit > ${TEST_REPORT_FILE}
           grcov . -s . --binary-path $BINARY_DIR --output-type lcov --output-path "${COVERAGE_REPORT_FILE}" --branch $GRCOV_IGNORE_OPTION $GRCOV_EXCLUDE_OPTION
           echo "report=rust/${COVERAGE_REPORT_FILE}" >> $GITHUB_OUTPUT
