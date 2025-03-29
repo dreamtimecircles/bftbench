@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.26/src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0-nightly (1aeb99d24 2025-03-19)" data-channel="nightly" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../static.files/storage-d8ac8691.js"></script><script defer src="../../static.files/src-script-b8d3f215.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="icon" href="https://www.rust-lang.org/favicon.ico"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">log/</div>lib.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">// Copyright 2015 The Rust Project Developers. See the COPYRIGHT
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/log-0.4.27/src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="log" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0-nightly (920d95eaf 2025-03-28)" data-channel="nightly" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../static.files/storage-82c7156e.js"></script><script defer src="../../static.files/src-script-63605ae7.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="icon" href="https://www.rust-lang.org/favicon.ico"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">log/</div>lib.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">// Copyright 2015 The Rust Project Developers. See the COPYRIGHT
 <a href=#2 id=2 data-nosnippet>2</a>// file at the top-level directory of this distribution and at
 <a href=#3 id=3 data-nosnippet>3</a>// http://rust-lang.org/COPYRIGHT.
 <a href=#4 id=4 data-nosnippet>4</a>//
@@ -292,7 +292,7 @@
 <a href=#292 id=292 data-nosnippet>292</a>//! configured in your `Cargo.toml`.
 <a href=#293 id=293 data-nosnippet>293</a>//!
 <a href=#294 id=294 data-nosnippet>294</a>//! * `std` allows use of `std` crate instead of the default `core`. Enables using `std::error` and
-<a href=#295 id=295 data-nosnippet>295</a>//! `set_boxed_logger` functionality.
+<a href=#295 id=295 data-nosnippet>295</a>//!   `set_boxed_logger` functionality.
 <a href=#296 id=296 data-nosnippet>296</a>//! * `serde` enables support for serialization and deserialization of `Level` and `LevelFilter`.
 <a href=#297 id=297 data-nosnippet>297</a>//!
 <a href=#298 id=298 data-nosnippet>298</a>//! ```toml
@@ -344,7 +344,7 @@
 <a href=#344 id=344 data-nosnippet>344</a></span><span class="attr">#![doc(
 <a href=#345 id=345 data-nosnippet>345</a>    html_logo_url = <span class="string">"https://www.rust-lang.org/logos/rust-logo-128x128-blk-v2.png"</span>,
 <a href=#346 id=346 data-nosnippet>346</a>    html_favicon_url = <span class="string">"https://www.rust-lang.org/favicon.ico"</span>,
-<a href=#347 id=347 data-nosnippet>347</a>    html_root_url = <span class="string">"https://docs.rs/log/0.4.26"
+<a href=#347 id=347 data-nosnippet>347</a>    html_root_url = <span class="string">"https://docs.rs/log/0.4.27"
 <a href=#348 id=348 data-nosnippet>348</a></span>)]
 <a href=#349 id=349 data-nosnippet>349</a>#![warn(missing_docs)]
 <a href=#350 id=350 data-nosnippet>350</a>#![deny(missing_debug_implementations, unconditional_recursion)]
@@ -1035,7 +1035,7 @@
 <a href=#1035 id=1035 data-nosnippet>1035</a>    }
 <a href=#1036 id=1036 data-nosnippet>1036</a>}
 <a href=#1037 id=1037 data-nosnippet>1037</a>
-<a href=#1038 id=1038 data-nosnippet>1038</a><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Default <span class="kw">for </span>RecordBuilder&lt;<span class="lifetime">'a</span>&gt; {
+<a href=#1038 id=1038 data-nosnippet>1038</a><span class="kw">impl </span>Default <span class="kw">for </span>RecordBuilder&lt;<span class="lifetime">'_</span>&gt; {
 <a href=#1039 id=1039 data-nosnippet>1039</a>    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
 <a href=#1040 id=1040 data-nosnippet>1040</a>        <span class="self">Self</span>::new()
 <a href=#1041 id=1041 data-nosnippet>1041</a>    }
@@ -1164,7 +1164,7 @@
 <a href=#1164 id=1164 data-nosnippet>1164</a>    }
 <a href=#1165 id=1165 data-nosnippet>1165</a>}
 <a href=#1166 id=1166 data-nosnippet>1166</a>
-<a href=#1167 id=1167 data-nosnippet>1167</a><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Default <span class="kw">for </span>MetadataBuilder&lt;<span class="lifetime">'a</span>&gt; {
+<a href=#1167 id=1167 data-nosnippet>1167</a><span class="kw">impl </span>Default <span class="kw">for </span>MetadataBuilder&lt;<span class="lifetime">'_</span>&gt; {
 <a href=#1168 id=1168 data-nosnippet>1168</a>    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
 <a href=#1169 id=1169 data-nosnippet>1169</a>        <span class="self">Self</span>::new()
 <a href=#1170 id=1170 data-nosnippet>1170</a>    }
@@ -1204,7 +1204,7 @@
 <a href=#1204 id=1204 data-nosnippet>1204</a>    </span><span class="kw">fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>);
 <a href=#1205 id=1205 data-nosnippet>1205</a>}
 <a href=#1206 id=1206 data-nosnippet>1206</a>
-<a href=#1207 id=1207 data-nosnippet>1207</a><span class="comment">// Just used as a dummy initial value for LOGGER
+<a href=#1207 id=1207 data-nosnippet>1207</a><span class="doccomment">/// A dummy initial value for LOGGER.
 <a href=#1208 id=1208 data-nosnippet>1208</a></span><span class="kw">struct </span>NopLogger;
 <a href=#1209 id=1209 data-nosnippet>1209</a>
 <a href=#1210 id=1210 data-nosnippet>1210</a><span class="kw">impl </span>Log <span class="kw">for </span>NopLogger {
