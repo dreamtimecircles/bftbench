@@ -28,7 +28,7 @@ look for the relevant modules, at the moment [`bft-bench-core`], [`bft-bench-sho
 
 ## Development
 
-This repository uses [Nix] and [direnv] to provide a reproducible development environment.
+This repository uses [Nix] flakes and [direnv] to provide a reproducible development environment.
 
 [Nix]: https://nixos.org
 [direnv]: https://direnv.net
