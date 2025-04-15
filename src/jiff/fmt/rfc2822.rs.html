@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.5/src/fmt/rfc2822.rs`."><title>rfc2822.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="jiff" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0-nightly (920d95eaf 2025-03-28)" data-channel="nightly" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../static.files/storage-82c7156e.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">jiff/fmt/</div>rfc2822.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">/*!
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.8/src/fmt/rfc2822.rs`."><title>rfc2822.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-7dda4a46.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="jiff" data-themes="" data-resource-suffix="" data-rustdoc-version="1.88.0-nightly (2da29dbe8 2025-04-14)" data-channel="nightly" data-search-js="search-f7877310.js" data-settings-js="settings-5514c975.js" ><script src="../../../static.files/storage-4e99c027.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-7ef8a74a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">jiff/fmt/</div>rfc2822.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">/*!
 <a href=#2 id=2 data-nosnippet>2</a>Support for printing and parsing instants using the [RFC 2822] datetime format.
 <a href=#3 id=3 data-nosnippet>3</a>
 <a href=#4 id=4 data-nosnippet>4</a>RFC 2822 is most commonly found when dealing with email messages.
@@ -360,7 +360,7 @@
 <a href=#360 id=360 data-nosnippet>360</a>    ///
 <a href=#361 id=361 data-nosnippet>361</a>    /// Note that this doesn't check that the input has been completely
 <a href=#362 id=362 data-nosnippet>362</a>    /// consumed.
-<a href=#363 id=363 data-nosnippet>363</a>    </span><span class="attr">#[inline(always)]
+<a href=#363 id=363 data-nosnippet>363</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#364 id=364 data-nosnippet>364</a>    </span><span class="kw">fn </span>parse_zoned_internal&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#365 id=365 data-nosnippet>365</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#366 id=366 data-nosnippet>366</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -378,7 +378,7 @@
 <a href=#378 id=378 data-nosnippet>378</a>    ///
 <a href=#379 id=379 data-nosnippet>379</a>    /// Note that this doesn't check that the input has been completely
 <a href=#380 id=380 data-nosnippet>380</a>    /// consumed.
-<a href=#381 id=381 data-nosnippet>381</a>    </span><span class="attr">#[inline(always)]
+<a href=#381 id=381 data-nosnippet>381</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#382 id=382 data-nosnippet>382</a>    </span><span class="kw">fn </span>parse_timestamp_internal&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#383 id=383 data-nosnippet>383</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#384 id=384 data-nosnippet>384</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -395,7 +395,7 @@
 <a href=#395 id=395 data-nosnippet>395</a>    /// datetime and its offset.
 <a href=#396 id=396 data-nosnippet>396</a>    ///
 <a href=#397 id=397 data-nosnippet>397</a>    /// This also consumes any trailing (superfluous) whitespace.
-<a href=#398 id=398 data-nosnippet>398</a>    </span><span class="attr">#[inline(always)]
+<a href=#398 id=398 data-nosnippet>398</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#399 id=399 data-nosnippet>399</a>    </span><span class="kw">fn </span>parse_datetime_offset&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#400 id=400 data-nosnippet>400</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#401 id=401 data-nosnippet>401</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -419,7 +419,7 @@
 <a href=#419 id=419 data-nosnippet>419</a>    /// one whitespace character.
 <a href=#420 id=420 data-nosnippet>420</a>    ///
 <a href=#421 id=421 data-nosnippet>421</a>    /// This basically parses everything except for the zone.
-<a href=#422 id=422 data-nosnippet>422</a>    </span><span class="attr">#[inline(always)]
+<a href=#422 id=422 data-nosnippet>422</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#423 id=423 data-nosnippet>423</a>    </span><span class="kw">fn </span>parse_datetime&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#424 id=424 data-nosnippet>424</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#425 id=425 data-nosnippet>425</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -491,7 +491,7 @@
 <a href=#491 id=491 data-nosnippet>491</a>    ///
 <a href=#492 id=492 data-nosnippet>492</a>    /// If a weekday is parsed, then this also skips any trailing whitespace
 <a href=#493 id=493 data-nosnippet>493</a>    /// (and requires at least one whitespace character).
-<a href=#494 id=494 data-nosnippet>494</a>    </span><span class="attr">#[inline(always)]
+<a href=#494 id=494 data-nosnippet>494</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#495 id=495 data-nosnippet>495</a>    </span><span class="kw">fn </span>parse_weekday&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#496 id=496 data-nosnippet>496</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#497 id=497 data-nosnippet>497</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -563,7 +563,7 @@
 <a href=#563 id=563 data-nosnippet>563</a>    ///
 <a href=#564 id=564 data-nosnippet>564</a>    /// This also parses at least one mandatory whitespace character after the
 <a href=#565 id=565 data-nosnippet>565</a>    /// day.
-<a href=#566 id=566 data-nosnippet>566</a>    </span><span class="attr">#[inline(always)]
+<a href=#566 id=566 data-nosnippet>566</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#567 id=567 data-nosnippet>567</a>    </span><span class="kw">fn </span>parse_day&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#568 id=568 data-nosnippet>568</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#569 id=569 data-nosnippet>569</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -594,7 +594,7 @@
 <a href=#594 id=594 data-nosnippet>594</a>    ///
 <a href=#595 id=595 data-nosnippet>595</a>    /// This also parses at least one mandatory whitespace character after the
 <a href=#596 id=596 data-nosnippet>596</a>    /// month name.
-<a href=#597 id=597 data-nosnippet>597</a>    </span><span class="attr">#[inline(always)]
+<a href=#597 id=597 data-nosnippet>597</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#598 id=598 data-nosnippet>598</a>    </span><span class="kw">fn </span>parse_month&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#599 id=599 data-nosnippet>599</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#600 id=600 data-nosnippet>600</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -663,7 +663,7 @@
 <a href=#663 id=663 data-nosnippet>663</a>    /// &gt; ending up with a value between 2000 and 2049. If a two digit year is
 <a href=#664 id=664 data-nosnippet>664</a>    /// &gt; encountered with a value between 50 and 99, or any three digit year
 <a href=#665 id=665 data-nosnippet>665</a>    /// &gt; is encountered, the year is interpreted by adding 1900.
-<a href=#666 id=666 data-nosnippet>666</a>    </span><span class="attr">#[inline(always)]
+<a href=#666 id=666 data-nosnippet>666</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#667 id=667 data-nosnippet>667</a>    </span><span class="kw">fn </span>parse_year&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#668 id=668 data-nosnippet>668</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#669 id=669 data-nosnippet>669</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -708,7 +708,7 @@
 <a href=#708 id=708 data-nosnippet>708</a>    ///
 <a href=#709 id=709 data-nosnippet>709</a>    /// This parses a mandatory trailing `:`, advancing the input to
 <a href=#710 id=710 data-nosnippet>710</a>    /// immediately after it.
-<a href=#711 id=711 data-nosnippet>711</a>    </span><span class="attr">#[inline(always)]
+<a href=#711 id=711 data-nosnippet>711</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#712 id=712 data-nosnippet>712</a>    </span><span class="kw">fn </span>parse_hour&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#713 id=713 data-nosnippet>713</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#714 id=714 data-nosnippet>714</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -729,7 +729,7 @@
 <a href=#729 id=729 data-nosnippet>729</a>
 <a href=#730 id=730 data-nosnippet>730</a>    <span class="doccomment">/// Parses a 2-digit minute. This assumes the input begins with what should
 <a href=#731 id=731 data-nosnippet>731</a>    /// be an ASCII digit. (i.e., It doesn't trim leading whitespace.)
-<a href=#732 id=732 data-nosnippet>732</a>    </span><span class="attr">#[inline(always)]
+<a href=#732 id=732 data-nosnippet>732</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#733 id=733 data-nosnippet>733</a>    </span><span class="kw">fn </span>parse_minute&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#734 id=734 data-nosnippet>734</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#735 id=735 data-nosnippet>735</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -750,7 +750,7 @@
 <a href=#750 id=750 data-nosnippet>750</a>
 <a href=#751 id=751 data-nosnippet>751</a>    <span class="doccomment">/// Parses a 2-digit second. This assumes the input begins with what should
 <a href=#752 id=752 data-nosnippet>752</a>    /// be an ASCII digit. (i.e., It doesn't trim leading whitespace.)
-<a href=#753 id=753 data-nosnippet>753</a>    </span><span class="attr">#[inline(always)]
+<a href=#753 id=753 data-nosnippet>753</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#754 id=754 data-nosnippet>754</a>    </span><span class="kw">fn </span>parse_second&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#755 id=755 data-nosnippet>755</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#756 id=756 data-nosnippet>756</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -776,7 +776,7 @@
 <a href=#776 id=776 data-nosnippet>776</a>    ///
 <a href=#777 id=777 data-nosnippet>777</a>    /// This assumes the offset must begin at the beginning of `input`. That
 <a href=#778 id=778 data-nosnippet>778</a>    /// is, any leading whitespace should already have been trimmed.
-<a href=#779 id=779 data-nosnippet>779</a>    </span><span class="attr">#[inline(always)]
+<a href=#779 id=779 data-nosnippet>779</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#780 id=780 data-nosnippet>780</a>    </span><span class="kw">fn </span>parse_offset&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#781 id=781 data-nosnippet>781</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#782 id=782 data-nosnippet>782</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -913,7 +913,7 @@
 <a href=#913 id=913 data-nosnippet>913</a>
 <a href=#914 id=914 data-nosnippet>914</a>    <span class="doccomment">/// Parses a time separator. This returns an error if one couldn't be
 <a href=#915 id=915 data-nosnippet>915</a>    /// found.
-<a href=#916 id=916 data-nosnippet>916</a>    </span><span class="attr">#[inline(always)]
+<a href=#916 id=916 data-nosnippet>916</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#917 id=917 data-nosnippet>917</a>    </span><span class="kw">fn </span>parse_time_separator&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#918 id=918 data-nosnippet>918</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#919 id=919 data-nosnippet>919</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -934,7 +934,7 @@
 <a href=#934 id=934 data-nosnippet>934</a>
 <a href=#935 id=935 data-nosnippet>935</a>    <span class="doccomment">/// Parses at least one whitespace character. If no whitespace was found,
 <a href=#936 id=936 data-nosnippet>936</a>    /// then this returns an error.
-<a href=#937 id=937 data-nosnippet>937</a>    </span><span class="attr">#[inline(always)]
+<a href=#937 id=937 data-nosnippet>937</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#938 id=938 data-nosnippet>938</a>    </span><span class="kw">fn </span>parse_whitespace&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#939 id=939 data-nosnippet>939</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#940 id=940 data-nosnippet>940</a>        input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
@@ -954,7 +954,7 @@
 <a href=#954 id=954 data-nosnippet>954</a>    <span class="doccomment">/// Skips over any ASCII whitespace at the beginning of `input`.
 <a href=#955 id=955 data-nosnippet>955</a>    ///
 <a href=#956 id=956 data-nosnippet>956</a>    /// This returns the input unchanged if it does not begin with whitespace.
-<a href=#957 id=957 data-nosnippet>957</a>    </span><span class="attr">#[inline(always)]
+<a href=#957 id=957 data-nosnippet>957</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#958 id=958 data-nosnippet>958</a>    </span><span class="kw">fn </span>skip_whitespace&lt;<span class="lifetime">'i</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw-2">mut </span>input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]) -&gt; Parsed&lt;<span class="lifetime">'i</span>, ()&gt; {
 <a href=#959 id=959 data-nosnippet>959</a>        <span class="kw">while </span>input.first().map_or(<span class="bool-val">false</span>, |<span class="kw-2">&amp;</span>b| is_whitespace(b)) {
 <a href=#960 id=960 data-nosnippet>960</a>            input = <span class="kw-2">&amp;</span>input[<span class="number">1</span>..];

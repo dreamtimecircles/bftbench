@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.5/src/fmt/strtime/parse.rs`."><title>parse.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="jiff" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0-nightly (920d95eaf 2025-03-28)" data-channel="nightly" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../../static.files/storage-82c7156e.js"></script><script defer src="../../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">jiff/fmt/strtime/</div>parse.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>core::fmt::Write;
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/jiff-0.2.8/src/fmt/strtime/parse.rs`."><title>parse.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-7dda4a46.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="jiff" data-themes="" data-resource-suffix="" data-rustdoc-version="1.88.0-nightly (2da29dbe8 2025-04-14)" data-channel="nightly" data-search-js="search-f7877310.js" data-settings-js="settings-5514c975.js" ><script src="../../../../static.files/storage-4e99c027.js"></script><script defer src="../../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-7ef8a74a.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">jiff/fmt/strtime/</div>parse.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>core::fmt::Write;
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use crate</span>::{
 <a href=#4 id=4 data-nosnippet>4</a>    civil::Weekday,
@@ -995,7 +995,7 @@
 <a href=#995 id=995 data-nosnippet>995</a>    ///
 <a href=#996 id=996 data-nosnippet>996</a>    /// The remaining input is returned. This returns an error if the given
 <a href=#997 id=997 data-nosnippet>997</a>    /// input is empty.
-<a href=#998 id=998 data-nosnippet>998</a>    </span><span class="attr">#[inline(always)]
+<a href=#998 id=998 data-nosnippet>998</a>    </span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#999 id=999 data-nosnippet>999</a>    </span><span class="kw">fn </span>parse_number&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#1000 id=1000 data-nosnippet>1000</a>        <span class="self">self</span>,
 <a href=#1001 id=1001 data-nosnippet>1001</a>        default_pad_width: usize,
@@ -1052,7 +1052,7 @@
 <a href=#1052 id=1052 data-nosnippet>1052</a>/// found, then the sign returned is positive.
 <a href=#1053 id=1053 data-nosnippet>1053</a>///
 <a href=#1054 id=1054 data-nosnippet>1054</a>/// This also returns the remaining unparsed input.
-<a href=#1055 id=1055 data-nosnippet>1055</a></span><span class="attr">#[inline(always)]
+<a href=#1055 id=1055 data-nosnippet>1055</a></span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#1056 id=1056 data-nosnippet>1056</a></span><span class="kw">fn </span>parse_optional_sign&lt;<span class="lifetime">'i</span>&gt;(input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]) -&gt; (i64, <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]) {
 <a href=#1057 id=1057 data-nosnippet>1057</a>    <span class="kw">if </span>input.is_empty() {
 <a href=#1058 id=1058 data-nosnippet>1058</a>        (<span class="number">1</span>, input)
@@ -1069,7 +1069,7 @@
 <a href=#1069 id=1069 data-nosnippet>1069</a>/// found, then the sign returned is positive.
 <a href=#1070 id=1070 data-nosnippet>1070</a>///
 <a href=#1071 id=1071 data-nosnippet>1071</a>/// This also returns the remaining unparsed input.
-<a href=#1072 id=1072 data-nosnippet>1072</a></span><span class="attr">#[inline(always)]
+<a href=#1072 id=1072 data-nosnippet>1072</a></span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#1073 id=1073 data-nosnippet>1073</a></span><span class="kw">fn </span>parse_required_sign&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#1074 id=1074 data-nosnippet>1074</a>    input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
 <a href=#1075 id=1075 data-nosnippet>1075</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(t::Sign, <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]), Error&gt; {
@@ -1133,7 +1133,7 @@
 <a href=#1133 id=1133 data-nosnippet>1133</a>///
 <a href=#1134 id=1134 data-nosnippet>1134</a>/// This exists because AM/PM is common and we can take advantage of the fact
 <a href=#1135 id=1135 data-nosnippet>1135</a>/// that they are both exactly two bytes.
-<a href=#1136 id=1136 data-nosnippet>1136</a></span><span class="attr">#[inline(always)]
+<a href=#1136 id=1136 data-nosnippet>1136</a></span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#1137 id=1137 data-nosnippet>1137</a></span><span class="kw">fn </span>parse_ampm&lt;<span class="lifetime">'i</span>&gt;(input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(usize, <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]), Error&gt; {
 <a href=#1138 id=1138 data-nosnippet>1138</a>    <span class="kw">if </span>input.len() &lt; <span class="number">2 </span>{
 <a href=#1139 id=1139 data-nosnippet>1139</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">err!</span>(
@@ -1163,7 +1163,7 @@
 <a href=#1163 id=1163 data-nosnippet>1163</a>///
 <a href=#1164 id=1164 data-nosnippet>1164</a>/// This exists because weekday abbreviations are common and we can take
 <a href=#1165 id=1165 data-nosnippet>1165</a>/// advantage of the fact that they are all exactly three bytes.
-<a href=#1166 id=1166 data-nosnippet>1166</a></span><span class="attr">#[inline(always)]
+<a href=#1166 id=1166 data-nosnippet>1166</a></span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#1167 id=1167 data-nosnippet>1167</a></span><span class="kw">fn </span>parse_weekday_abbrev&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#1168 id=1168 data-nosnippet>1168</a>    input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
 <a href=#1169 id=1169 data-nosnippet>1169</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(usize, <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]), Error&gt; {
@@ -1204,7 +1204,7 @@
 <a href=#1204 id=1204 data-nosnippet>1204</a>///
 <a href=#1205 id=1205 data-nosnippet>1205</a>/// This exists because month name abbreviations are common and we can take
 <a href=#1206 id=1206 data-nosnippet>1206</a>/// advantage of the fact that they are all exactly three bytes.
-<a href=#1207 id=1207 data-nosnippet>1207</a></span><span class="attr">#[inline(always)]
+<a href=#1207 id=1207 data-nosnippet>1207</a></span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#1208 id=1208 data-nosnippet>1208</a></span><span class="kw">fn </span>parse_month_name_abbrev&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#1209 id=1209 data-nosnippet>1209</a>    input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
 <a href=#1210 id=1210 data-nosnippet>1210</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(usize, <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]), Error&gt; {
@@ -1246,7 +1246,7 @@
 <a href=#1246 id=1246 data-nosnippet>1246</a>    <span class="prelude-val">Ok</span>((index, input))
 <a href=#1247 id=1247 data-nosnippet>1247</a>}
 <a href=#1248 id=1248 data-nosnippet>1248</a>
-<a href=#1249 id=1249 data-nosnippet>1249</a><span class="attr">#[inline(always)]
+<a href=#1249 id=1249 data-nosnippet>1249</a><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#1250 id=1250 data-nosnippet>1250</a></span><span class="kw">fn </span>parse_iana&lt;<span class="lifetime">'i</span>&gt;(input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="kw-2">&amp;</span><span class="lifetime">'i </span>str, <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]), Error&gt; {
 <a href=#1251 id=1251 data-nosnippet>1251</a>    <span class="kw">let </span>mkiana = parse::slicer(input);
 <a href=#1252 id=1252 data-nosnippet>1252</a>    <span class="kw">let </span>(<span class="kw">_</span>, <span class="kw-2">mut </span>input) = parse_iana_component(input)<span class="question-mark">?</span>;
@@ -1266,7 +1266,7 @@
 <a href=#1266 id=1266 data-nosnippet>1266</a><span class="doccomment">/// Parses a single IANA name component. That is, the thing that leads all IANA
 <a href=#1267 id=1267 data-nosnippet>1267</a>/// time zone identifiers and the thing that must always come after a `/`. This
 <a href=#1268 id=1268 data-nosnippet>1268</a>/// returns an error if no component could be found.
-<a href=#1269 id=1269 data-nosnippet>1269</a></span><span class="attr">#[inline(always)]
+<a href=#1269 id=1269 data-nosnippet>1269</a></span><span class="attr">#[cfg_attr(feature = <span class="string">"perf-inline"</span>, inline(always))]
 <a href=#1270 id=1270 data-nosnippet>1270</a></span><span class="kw">fn </span>parse_iana_component&lt;<span class="lifetime">'i</span>&gt;(
 <a href=#1271 id=1271 data-nosnippet>1271</a>    <span class="kw-2">mut </span>input: <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8],
 <a href=#1272 id=1272 data-nosnippet>1272</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8], <span class="kw-2">&amp;</span><span class="lifetime">'i </span>[u8]), Error&gt; {
